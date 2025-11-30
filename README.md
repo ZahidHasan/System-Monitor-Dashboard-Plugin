@@ -1,3 +1,15 @@
+# System Monitor Dashboard Plugin
+
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![WordPress Tested](https://img.shields.io/badge/WordPress-6.4.2-blue)
+![PHP Version](https://img.shields.io/badge/PHP-7.4%2B-green)
+![PowerShell Automation](https://img.shields.io/badge/PowerShell-Automated-lightblue)
+![Plugin Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![Issues](https://img.shields.io/github/issues/zahidhasan/System-Monitor-Dashboard-Plugin)
+![Pull Requests](https://img.shields.io/github/issues-pr/zahidhasan/System-Monitor-Dashboard-Plugin)
+![Stars](https://img.shields.io/github/stars/zahidhasan/System-Monitor-Dashboard-Plugin?style=social)
+
+
 ## 📸 Screenshots  
 ### Server Resource Dashboard This dashboard provides real-time monitoring of server resources including CPU load, RAM usage, and disk space.  
 ![Server Resource Dashboard](Plugin-Resources/UX-UI/dashboard-view.png)
