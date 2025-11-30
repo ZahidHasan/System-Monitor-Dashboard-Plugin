@@ -1,4 +1,6 @@
-
+## 📸 Screenshots  
+### Server Resource Dashboard This dashboard provides real-time monitoring of server resources including CPU load, RAM usage, and disk space.  
+![Server Resource Dashboard](Plugin-Resources/UX-UI/dashboard-view.png)
 ```markdown
 # 🖥️ System Monitor Dashboard Plugin
 
