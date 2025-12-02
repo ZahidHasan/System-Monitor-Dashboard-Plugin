@@ -9,10 +9,17 @@
 ![Pull Requests](https://img.shields.io/github/issues-pr/zahidhasan/System-Monitor-Dashboard-Plugin)
 ![Stars](https://img.shields.io/github/stars/zahidhasan/System-Monitor-Dashboard-Plugin?style=social)
 
+# Server Monitor Dashboard
+
+**Version:** 1.2  
+**Author:** Zahid Hasan  
+**Description:** Live CPU, RAM, Disk, Network, and Process charts in a top-level WordPress admin menu — styled like a task manager dashboard.
+
+---
 
 ## 📸 Screenshots  
 ### Server Resource Dashboard This dashboard provides real-time monitoring of server resources including CPU load, RAM usage, and disk space.  
-![Server Resource Dashboard](Plugin-Resources/UX-UI/dashboard-view.png)
+![Server Resource Dashboard](Resources/dashboard-view-v1.1.png)
 ```markdown
 # 🖥️ System Monitor Dashboard Plugin
 
@@ -26,11 +33,21 @@ Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this 
 ---
 
 ## 🚀 Features
-- Real‑time CPU, RAM, and disk usage display  
-- Customizable dashboard widgets  
-- Integration with LocalWP for rapid testing  
-- Modular design for easy extension (RAM disk validator, power plan monitor, etc.)  
-- Lightweight footprint with minimal dependencies  
+- 📊 Real-time charts for CPU, RAM, Disk, Network I/O, and Processes
+- 🍩 Animated donut chart for disk space (Used vs Free)
+- 🧠 Info panels:
+  - PHP version
+  - MySQL version
+  - WordPress version
+  - Memory limit
+  - Max upload size
+- 📚 WordPress content stats:
+  - Posts count
+  - Pages count
+  - Users count
+- ⚡ AJAX-powered updates every 2 seconds
+- 🎨 Clean, responsive layout with Chart.js
+
 
 ---
 
@@ -51,12 +68,24 @@ Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this 
 
 ---
 
-## 📸 Screenshots
-*(Add screenshots to the `screenshots/` folder and reference them here)*  
+## 🛠️ Requirements
 
-![CPU Chart](screenshots/cpu_chart.png)  
-![RAM Chart](screenshots/ram_chart.png)  
-![Disk Chart](screenshots/disk_chart.png)  
+- WordPress 5.0+
+- PHP 7.4+
+- Chart.js (auto-loaded via CDN)
+
+---
+
+
+## 📸 Screenshots 
+
+![CPU Chart](Resources/cpu.gif)  
+![RAM Chart](Resources/ram.gif)  
+![Disk Chart](Resources/disk.gif)  
+
+### Info Panels
+![Info Panels](Resources/info-panel.png)
+
 
 ---
 
@@ -93,6 +122,10 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 - [Chart.js](https://www.chartjs.org/) for rendering interactive charts  
 - WordPress Plugin API for admin integration  
 ```
+## 📦 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for full history.
+
 
 ---
 
