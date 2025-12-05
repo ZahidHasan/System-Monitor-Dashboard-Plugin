@@ -46,27 +46,27 @@ Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this 
 
 # 🚀 Features
 
-- 📊 Real-time charts for:
+  - 📊 Real-time charts for:
   - CPU usage
   - RAM usage
   - Disk usage
   - Network I/O (Up/Down)
   - Top processes
-- 🍩 **New in v1.3**: Animated donut chart for disk space (Used vs Free)
-- 🧠 Info panels:
+  - 🍩 **New in v1.3**: Animated donut chart for disk space (Used vs Free)
+  - 🧠 Info panels:
   - PHP version
   - MySQL version
   - WordPress version
   - Memory limit
   - Max upload size
   - Database size
-- 📚 WordPress content stats:
+  - 📚 WordPress content stats:
   - Posts count
   - Pages count
   - Users count
-- ⚡ AJAX + REST-powered updates every 2 seconds
-- 🎨 Clean, responsive layout with Chart.js
-- 🛡️ Alert thresholds for CPU, RAM, and Disk usage
+  - ⚡ AJAX + REST-powered updates every 2 seconds
+  - 🎨 Clean, responsive layout with Chart.js
+  - 🛡️ Alert thresholds for CPU, RAM, and Disk usage
 
 ---
 
@@ -76,7 +76,6 @@ Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this 
    git clone https://github.com/zahidhasan/system-monitor-dashboard.git
 2. Upload the plugin ZIP into WordPress (`Plugins → Add New → Upload Plugin`).
 3. Activate **System Monitor Dashboard** from the WordPress admin panel.
-```
 
 ---
 
@@ -105,13 +104,13 @@ Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this 
 
 ---
 
-# 📚 Roadmap
+## 📚 Roadmap
 
-•     [x] Add disk usage pie chart (v1.3)
-•     [ ] RAM Disk Validator integration
-•     [ ] Expand power plan monitoring
-•     [ ] Export stats to CSV/JSON
-•     [ ] Build WinUI 3 desktop companion app
+- [x] Add disk usage pie chart (v1.3)
+- [ ] RAM Disk Validator integration
+- [ ] Expand power plan monitoring
+- [ ] Export stats to CSV/JSON
+- [ ] Build WinUI 3 desktop companion app
 
 ---
 
