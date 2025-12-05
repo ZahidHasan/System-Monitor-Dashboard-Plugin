@@ -33,7 +33,6 @@ class Server_Monitor_Dashboard {
     }
 
     private function __construct() {
-        // activate hooks
         add_action('admin_menu', [$this, 'register_menu']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
         add_action('wp_ajax_smd_get_stats', [$this, 'ajax_get_stats']);
@@ -42,7 +41,6 @@ class Server_Monitor_Dashboard {
     }
 
     public function register_menu() {
-        // top-level menu, position 3 to appear below Dashboard
         add_menu_page(
             'Server Monitor',
             'Server Monitor',
@@ -53,7 +51,6 @@ class Server_Monitor_Dashboard {
             3
         );
 
-        // settings submenu
         add_submenu_page(
             'server-monitor-dashboard',
             'Server Monitor Settings',
@@ -108,13 +105,10 @@ class Server_Monitor_Dashboard {
     }
 
     public function enqueue_assets($hook) {
-        // only on our plugin pages
         if (!in_array($hook, ['toplevel_page_server-monitor-dashboard', 'server-monitor-dashboard_page_server-monitor-dashboard-settings'])) return;
 
-        // Chart.js UMD
         wp_enqueue_script('smd-chartjs', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', [], null, true);
 
-        // Localize AJAX/rest info + options
         $opts = wp_parse_args(get_option($this->option_name, []), $this->defaults);
         wp_localize_script('smd-chartjs', 'smdConfig', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
@@ -128,15 +122,13 @@ class Server_Monitor_Dashboard {
             ]
         ]);
 
-        // Main inline JS (runs after chartjs)
         $js = $this->get_inline_js();
         wp_add_inline_script('smd-chartjs', $js, 'after');
 
-        // Styles
         $css = "
             .smd-wrap{max-width:1200px;margin:20px auto;padding:18px;background:#fff;border-radius:10px;}
             .smd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-bottom:18px;}
-            .smd-card{padding:12px;border:1px solid #e6e6e6;border-radius:8px;background:#fafafa;position:relative;}
+            .smd-card{padding:12px;border:1px solid #ccc;border-radius:8px;background:#f0f0f0;position:relative;}
             .smd-chart{height:200px}
             .smd-label{position:absolute;top:10px;right:12px;font-weight:600;color:#222}
             .smd-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px;}
@@ -145,12 +137,12 @@ class Server_Monitor_Dashboard {
             .smd-alert.ok{background:#e6ffea;color:#1f7a1f}
             .smd-alert.warn{background:#fff4e6;color:#7a5f1f}
             .smd-alert.crit{background:#ffe6e6;color:#7a1f1f}
+            
         ";
         wp_add_inline_style('wp-admin', $css);
     }
 
     private function get_inline_js() {
-        // JS logic: create charts, poll REST or AJAX, update labels and colors
         return <<<JS
 (function(){
     const cfg = window.smdConfig || {};
@@ -159,14 +151,35 @@ class Server_Monitor_Dashboard {
     const nonce = cfg.nonce;
     const alerts = cfg.alerts || {cpu:80, ram:80, disk:90};
 
-    // helper - create chart
+    // helper - line chart
     function makeChart(elId, color, max=100){
         const ctx = document.getElementById(elId)?.getContext('2d');
         if(!ctx) return null;
         return new Chart(ctx, {
             type:'line',
             data:{labels:Array(60).fill(''), datasets:[{data:Array(60).fill(0), borderColor:color, backgroundColor:color.replace('1)', '0.12)'), tension:0.3, borderWidth:2, pointRadius:0, fill:true}]},
-            options:{responsive:true, animation:false, plugins:{legend:{display:false}, tooltip:{enabled:false}}, scales:{x:{grid:{color:'rgba(200,200,200,0.05)'}}, y:{min:0, max:max, grid:{color:'rgba(200,200,200,0.1)'}}}}
+            options:{responsive:true, animation:false, plugins:{legend:{display:false}, tooltip:{enabled:false}}, scales:{x:{grid:{color:'rgba(150,150,150,0.2)'}}, y:{min:0, max:max, grid:{color:'rgba(150,150,150,0.3)'}}}}
+        });
+    }
+
+    // helper - pie/donut chart
+    function makePieChart(elId, used, free){
+        const ctx = document.getElementById(elId)?.getContext('2d');
+        if(!ctx) return null;
+        return new Chart(ctx, {
+            type:'doughnut',
+            data:{
+                labels:['Used','Free'],
+                datasets:[{
+                    data:[used, free],
+                    backgroundColor:['rgba(255,99,132,0.8)','rgba(75,192,192,0.8)'],
+                    borderWidth:1
+                }]
+            },
+            options:{
+                responsive:true,
+                plugins:{legend:{position:'bottom'}}
+            }
         });
     }
 
@@ -175,30 +188,24 @@ class Server_Monitor_Dashboard {
         ram: makeChart('smdRamChart','rgba(40,200,120,1)'),
         disk: makeChart('smdDiskChart','rgba(255,140,0,1)'),
         netUp: makeChart('smdNetUpChart','rgba(0,150,255,1)', 100),
-        netDown: makeChart('smdNetDownChart','rgba(200,0,150,1)', 200)
+        netDown: makeChart('smdNetDownChart','rgba(200,0,150,1)', 200),
+        diskPie: makePieChart('smdDiskPieChart', 0, 100)
     };
 
     function push(arr, val, maxLen=60){ arr.push(val); if(arr.length>maxLen) arr.shift(); return arr; }
-
-    // storage for data
     let dataStore = {cpu:[], ram:[], disk:[], netUp:[], netDown:[]};
 
-    // fetch via REST if available, otherwise AJAX
     function fetchStats(){
         fetch(cfg.restBase, {headers:{'X-WP-NONCE': nonce}})
-        .then(r=>{
-            if(!r.ok) throw null;
-            return r.json();
-        })
+        .then(r=>{ if(!r.ok) throw null; return r.json(); })
         .catch(()=> {
-            // fallback to admin-ajax
             const fd = new FormData();
             fd.append('action','smd_get_stats');
             fd.append('nonce', nonce);
             return fetch(ajaxUrl, {method:'POST', body: fd}).then(r=>r.json()).then(j=> j.success ? j.data : Promise.reject('ajax fail'));
         })
         .then(d=>{
-            // update numeric labels
+            // labels
             document.getElementById('smdCpuLabel').textContent = d.cpu + '%';
             document.getElementById('smdRamLabel').textContent = d.ram_percent + '%';
             document.getElementById('smdDiskLabel').textContent = d.disk_percent + '%';
@@ -207,23 +214,27 @@ class Server_Monitor_Dashboard {
             document.getElementById('smdUptime').textContent = d.uptime || '-';
             document.getElementById('smdLoadAvg').textContent = d.load_avg ? d.load_avg.join(', ') : '-';
             document.getElementById('smdDbSize').textContent = d.db_size || '-';
+            document.getElementById('smdDiskPieLabel').textContent = d.disk_percent + '%';
 
-            // update alerts
+            // alerts
             applyAlert('smdCpuAlert', d.cpu, alerts.cpu);
             applyAlert('smdRamAlert', d.ram_percent, alerts.ram);
             applyAlert('smdDiskAlert', d.disk_percent, alerts.disk);
 
-            // push to charts
+            // line charts
             pushAndUpdate('cpu', d.cpu);
             pushAndUpdate('ram', d.ram_percent);
             pushAndUpdate('disk', d.disk_percent);
             pushAndUpdate('netUp', d.net_up);
             pushAndUpdate('netDown', d.net_down);
+
+            // pie chart
+            if(charts.diskPie){
+                charts.diskPie.data.datasets[0].data = [d.disk_percent, Math.max(0, 100 - d.disk_percent)];
+                charts.diskPie.update();
+            }
         })
-        .catch(e=>{
-            // silently fail - could display an error box
-            //console.log('smd fetch failed', e);
-        });
+        .catch(()=>{ /* no-op */ });
     }
 
     function applyAlert(elId, value, threshold){
@@ -313,7 +324,6 @@ JS;
 
         // fallback / simulation if not found
         if ($ram_percent === 0) {
-            // try PHP memory_get_usage to at least show some movement
             $php_used_mb = round(memory_get_usage(true) / (1024*1024), 1);
             $php_limit = $this->php_memory_limit_mb();
             $ram_percent = $php_limit > 0 ? round(($php_used_mb / $php_limit) * 100, 1) : rand(20,70);
@@ -340,7 +350,6 @@ JS;
 
         // Network (simulated unless you implement real collection)
         if ($use_real) {
-            // you can implement reading from /proc/net/dev or `ifconfig` output
             $net_up = rand(1,40);
             $net_down = rand(1,120);
         } else {
@@ -385,7 +394,6 @@ JS;
     }
 
     private function get_cpu_cores() {
-        // Linux nproc
         if (is_readable('/proc/cpuinfo')) {
             $cpuinfo = @file_get_contents('/proc/cpuinfo');
             if ($cpuinfo !== false) {
@@ -393,7 +401,6 @@ JS;
                 if (!empty($m[0])) return count($m[0]);
             }
         }
-        // try nproc
         if (function_exists('shell_exec')) {
             $n = @shell_exec('nproc 2>/dev/null');
             if ($n !== null) return (int)trim($n);
@@ -457,12 +464,10 @@ JS;
     private function get_top_processes($limit = 5) {
         $out = [];
         if (function_exists('shell_exec')) {
-            // try ps and sort by memory
             $cmd = "ps -eo pid,ppid,cmd,%mem,%cpu --sort=-%mem | head -n " . (int)($limit+1) . " 2>/dev/null";
             $txt = @shell_exec($cmd);
             if ($txt) {
                 $lines = array_filter(array_map('trim', explode(PHP_EOL, $txt)));
-                // drop header if exists
                 if (count($lines) > 1) array_shift($lines);
                 foreach (array_slice($lines, 0, $limit) as $ln) {
                     $parts = preg_split('/\s+/', $ln, 5);
@@ -476,7 +481,7 @@ JS;
     }
 
     public function render_page() {
-        $stats = $this->collect_stats(); // show initial snapshot on page load
+        $stats = $this->collect_stats();
         $opts = wp_parse_args(get_option($this->option_name, []), $this->defaults);
         ?>
         <div class="smd-wrap">
@@ -504,6 +509,7 @@ JS;
                 <div class="smd-card"><h4>Disk <span class="smd-label" id="smdDiskLabel"><?php echo esc_html($stats['disk_percent']); ?>%</span></h4><canvas id="smdDiskChart" class="smd-chart"></canvas></div>
                 <div class="smd-card"><h4>Net Up <span class="smd-label" id="smdNetUpLabel"><?php echo esc_html($stats['net_up']); ?> Mbps</span></h4><canvas id="smdNetUpChart" class="smd-chart"></canvas></div>
                 <div class="smd-card"><h4>Net Down <span class="smd-label" id="smdNetDownLabel"><?php echo esc_html($stats['net_down']); ?> Mbps</span></h4><canvas id="smdNetDownChart" class="smd-chart"></canvas></div>
+                <div class="smd-card"><h4>Disk Usage Pie <span class="smd-label" id="smdDiskPieLabel"><?php echo esc_html($stats['disk_percent']); ?>%</span></h4><canvas id="smdDiskPieChart" class="smd-chart"></canvas></div>
             </div>
 
             <h3 style="margin-top:18px">WordPress</h3>
