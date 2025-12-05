@@ -1,6 +1,14 @@
 # Server Monitor Dashboard Plugin
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![WordPress Tested](https://img.shields.io/badge/WordPress-6.4.2-blue)
+![PHP Version](https://img.shields.io/badge/PHP-7.4%2B-green)
+![PowerShell Automation](https://img.shields.io/badge/PowerShell-Automated-lightblue)
+![Plugin Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![Issues](https://img.shields.io/github/issues/zahidhasan/System-Monitor-Dashboard-Plugin)
+![Pull Requests](https://img.shields.io/github/issues-pr/zahidhasan/System-Monitor-Dashboard-Plugin)
+![Stars](https://img.shields.io/github/stars/zahidhasan/System-Monitor-Dashboard-Plugin?style=social)
+
 
 **Version:** 1.2  
 **Author:** Zahid Hasan  
@@ -20,20 +28,16 @@
 
 #### White Theme
 
-![Server Resource Dashboard](P:\pCloudSync\Dev\Github\System-Monitor-Dashboard-Plugin\Resources\ScreenShots\dashboard-white-v1.3.png)
+![Server Resource Dashboard](/Resources/ScreenShots/dashboard-white-v1.3.png)
 
 
 
 #### Setting
 
-![Server Resource Dashboard](P:\pCloudSync\Dev\Github\System-Monitor-Dashboard-Plugin\Resources\ScreenShots\dashboard-setting-v1.3.png)
+![Server Resource Dashboard](/Resources/ScreenShots/dashboard-setting-v1.3.png)
 
 ```markdown
 # 🖥️ System Monitor Dashboard Plugin
-
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-![WordPress](https://img.shields.io/badge/WordPress-6.6%2B-blue)
-![PHP](https://img.shields.io/badge/PHP-7.4%2B-green)
 
 A lightweight WordPress plugin that provides a real‑time system monitoring dashboard.  
 Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this plugin helps developers and sysadmins visualize CPU, RAM, and disk stats directly inside WordPress.
@@ -69,7 +73,6 @@ Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this 
 
 ## 📦 Installation
 1. Clone the repository:
-   ```bash
    git clone https://github.com/zahidhasan/system-monitor-dashboard.git
 2. Upload the plugin ZIP into WordPress (`Plugins → Add New → Upload Plugin`).
 3. Activate **System Monitor Dashboard** from the WordPress admin panel.
@@ -93,7 +96,6 @@ Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this 
 
 ---
 
-## 
 
 ## 🛠️ Development Notes
 
@@ -133,10 +135,9 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 
 - [Chart.js](https://www.chartjs.org/) for rendering interactive charts  
 - WordPress Plugin API for admin integration  
+----  
   
-  ```
-  ## 📦 Changelog
-  ```
+## 📦 Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.
 
