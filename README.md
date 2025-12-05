@@ -42,7 +42,7 @@
 A lightweight WordPress plugin that provides a real‑time system monitoring dashboard.  
 Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this plugin helps developers and sysadmins visualize CPU, RAM, and disk stats directly inside WordPress.
 
----
+
 
 # 🚀 Features
 
@@ -68,16 +68,14 @@ Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this 
   - 🎨 Clean, responsive layout with Chart.js
   - 🛡️ Alert thresholds for CPU, RAM, and Disk usage
 
----
-
 
 ## 📦 Installation
+
 1. Clone the repository:
    git clone https://github.com/zahidhasan/system-monitor-dashboard.git
 2. Upload the plugin ZIP into WordPress (`Plugins → Add New → Upload Plugin`).
 3. Activate **System Monitor Dashboard** from the WordPress admin panel.
 
----
 
 ## ⚙️ Usage
 
@@ -85,7 +83,7 @@ Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this 
 - View live system stats (CPU, RAM, disk).  
 - Configure settings via the plugin options page.  
 
----
+
 
 ## 🛠️ Requirements
 
@@ -93,7 +91,6 @@ Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this 
 - PHP 7.4+
 - Chart.js (auto-loaded via CDN)
 
----
 
 
 ## 🛠️ Development Notes
@@ -102,7 +99,7 @@ Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this 
 - GUI prototypes tested with **WinUI 3** for future desktop integration.  
 - Modular architecture allows adding new monitors (e.g., disk I/O, battery stats).  
 
----
+
 
 ## 📚 Roadmap
 
@@ -112,7 +109,7 @@ Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this 
 - [ ] Export stats to CSV/JSON
 - [ ] Build WinUI 3 desktop companion app
 
----
+
 
 ## 🤝 Contributing
 
@@ -122,22 +119,22 @@ For major changes, please open an issue first to discuss what you’d like to ad
 - Bug reports → [GitHub Issues](https://github.com/zahidhasan/system-monitor-dashboard/issues)  
 - Feature requests → [GitHub Issues](https://github.com/zahidhasan/system-monitor-dashboard/issues)  
 
----
+
 
 ## 📜 License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.  
 
----
+
 
 ## 🙌 Credits
 
 - [Chart.js](https://www.chartjs.org/) for rendering interactive charts  
 - WordPress Plugin API for admin integration  
-----  
+  
   
 ## 📦 Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.
 
----
+```
