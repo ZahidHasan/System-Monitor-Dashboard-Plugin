@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Server Monitor Dashboard
  * Description: Live CPU, RAM, Disk, Network, and Process charts in a top-level menu below Dashboard.
- * Version: 1.1
+ * Version: 1.3
  * Author: Zahid Hasan
  * Author URI: https://zahidhasan.github.io
  * License: MIT License
@@ -10,263 +10,539 @@
 
 if (!defined('ABSPATH')) exit;
 
-// Top-level menu
-add_action('admin_menu', 'smtm_register_menu');
-function smtm_register_menu() {
-    add_menu_page(
-        'Server Monitor',
-        'Server Monitor',
-        'manage_options',
-        'server-monitor',
-        'smtm_page_content',
-        'dashicons-chart-line',
-        3
-    );
-}
+if (!class_exists('Server_Monitor_Dashboard')) {
 
-// Enqueue assets
-add_action('admin_enqueue_scripts', 'smtm_enqueue_assets');
-function smtm_enqueue_assets($hook) {
-    if ($hook !== 'toplevel_page_server-monitor') return;
+class Server_Monitor_Dashboard {
 
-    wp_enqueue_script('chartjs', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', [], null, true);
+    private static $instance = null;
+    private $option_name = 'smd_options';
+    private $defaults = [
+        'refresh_interval' => 2,          // seconds
+        'use_real_metrics' => 0,          // 0 = simulate, 1 = try real
+        'alert_cpu' => 80,
+        'alert_ram' => 80,
+        'alert_disk' => 90,
+        'cache_ttl' => 2
+    ];
 
-    wp_localize_script('chartjs','smtm_ajax',[
-        'url'=>admin_url('admin-ajax.php'),
-        'nonce'=>wp_create_nonce('smtm_nonce')
-    ]);
+    public static function instance() {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
 
-    $js = <<<EOT
-document.addEventListener('DOMContentLoaded',()=>{
-  // existing chart initializations...
-  diskDonut = new Chart(document.getElementById('smtmDiskDonut').getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Used', 'Free'],
-      datasets: [{
-        data: [45.02, 99.83 - 45.02],
-        backgroundColor: ['#ccc', '#00bfa5'],
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'bottom' },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              return context.label + ': ' + context.formattedValue + ' GB';
+    private function __construct() {
+        // activate hooks
+        add_action('admin_menu', [$this, 'register_menu']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
+        add_action('wp_ajax_smd_get_stats', [$this, 'ajax_get_stats']);
+        add_action('admin_init', [$this, 'register_settings']);
+        add_action('rest_api_init', [$this, 'register_rest_routes']);
+    }
+
+    public function register_menu() {
+        // top-level menu, position 3 to appear below Dashboard
+        add_menu_page(
+            'Server Monitor',
+            'Server Monitor',
+            'manage_options',
+            'server-monitor-dashboard',
+            [$this, 'render_page'],
+            'dashicons-chart-line',
+            3
+        );
+
+        // settings submenu
+        add_submenu_page(
+            'server-monitor-dashboard',
+            'Server Monitor Settings',
+            'Settings',
+            'manage_options',
+            'server-monitor-dashboard-settings',
+            [$this, 'render_settings_page']
+        );
+    }
+
+    public function register_settings() {
+        register_setting($this->option_name, $this->option_name, [$this, 'validate_options']);
+        add_settings_section('smd_main', 'Main Settings', null, $this->option_name);
+
+        add_settings_field('refresh_interval', 'Refresh Interval (seconds)', [$this, 'field_refresh_interval'], $this->option_name, 'smd_main');
+        add_settings_field('use_real_metrics', 'Use real system metrics (when available)', [$this, 'field_use_real_metrics'], $this->option_name, 'smd_main');
+        add_settings_field('alert_thresholds', 'Alert thresholds (%)', [$this, 'field_alert_thresholds'], $this->option_name, 'smd_main');
+    }
+
+    public function validate_options($input) {
+        $valid = wp_parse_args(get_option($this->option_name, []), $this->defaults);
+        $valid['refresh_interval'] = max(1, (int)($input['refresh_interval'] ?? $valid['refresh_interval']));
+        $valid['use_real_metrics'] = !empty($input['use_real_metrics']) ? 1 : 0;
+        $valid['alert_cpu'] = min(100, max(1, (int)($input['alert_cpu'] ?? $valid['alert_cpu'])));
+        $valid['alert_ram'] = min(100, max(1, (int)($input['alert_ram'] ?? $valid['alert_ram'])));
+        $valid['alert_disk'] = min(100, max(1, (int)($input['alert_disk'] ?? $valid['alert_disk'])));
+        $valid['cache_ttl'] = max(1, (int)($input['cache_ttl'] ?? $valid['cache_ttl']));
+        add_settings_error($this->option_name, 'smd_saved', 'Settings saved.', 'updated');
+        return $valid;
+    }
+
+    public function field_refresh_interval() {
+        $opts = get_option($this->option_name, $this->defaults);
+        $val = esc_attr($opts['refresh_interval']);
+        echo "<input type='number' min='1' name='{$this->option_name}[refresh_interval]' value='{$val}' />";
+    }
+
+    public function field_use_real_metrics() {
+        $opts = get_option($this->option_name, $this->defaults);
+        $checked = $opts['use_real_metrics'] ? 'checked' : '';
+        echo "<label><input type='checkbox' name='{$this->option_name}[use_real_metrics]' value='1' {$checked} /> Try to read real system metrics (Linux friendly)</label>";
+    }
+
+    public function field_alert_thresholds() {
+        $opts = get_option($this->option_name, $this->defaults);
+        $cpu = esc_attr($opts['alert_cpu']);
+        $ram = esc_attr($opts['alert_ram']);
+        $disk = esc_attr($opts['alert_disk']);
+        echo "CPU: <input style='width:70px' type='number' min='1' max='100' name='{$this->option_name}[alert_cpu]' value='{$cpu}' /> &nbsp; ";
+        echo "RAM: <input style='width:70px' type='number' min='1' max='100' name='{$this->option_name}[alert_ram]' value='{$ram}' /> &nbsp; ";
+        echo "Disk: <input style='width:70px' type='number' min='1' max='100' name='{$this->option_name}[alert_disk]' value='{$disk}' />";
+    }
+
+    public function enqueue_assets($hook) {
+        // only on our plugin pages
+        if (!in_array($hook, ['toplevel_page_server-monitor-dashboard', 'server-monitor-dashboard_page_server-monitor-dashboard-settings'])) return;
+
+        // Chart.js UMD
+        wp_enqueue_script('smd-chartjs', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', [], null, true);
+
+        // Localize AJAX/rest info + options
+        $opts = wp_parse_args(get_option($this->option_name, []), $this->defaults);
+        wp_localize_script('smd-chartjs', 'smdConfig', [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'restBase' => esc_url_raw(rest_url('system-monitor/v1/stats')),
+            'nonce' => wp_create_nonce('smd_nonce'),
+            'refresh' => (int)$opts['refresh_interval'],
+            'alerts' => [
+                'cpu' => (int)$opts['alert_cpu'],
+                'ram' => (int)$opts['alert_ram'],
+                'disk' => (int)$opts['alert_disk']
+            ]
+        ]);
+
+        // Main inline JS (runs after chartjs)
+        $js = $this->get_inline_js();
+        wp_add_inline_script('smd-chartjs', $js, 'after');
+
+        // Styles
+        $css = "
+            .smd-wrap{max-width:1200px;margin:20px auto;padding:18px;background:#fff;border-radius:10px;}
+            .smd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-bottom:18px;}
+            .smd-card{padding:12px;border:1px solid #e6e6e6;border-radius:8px;background:#fafafa;position:relative;}
+            .smd-chart{height:200px}
+            .smd-label{position:absolute;top:10px;right:12px;font-weight:600;color:#222}
+            .smd-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px;}
+            .smd-info-card{padding:10px;border-radius:6px;background:#f8f8f8;border:1px solid #eee}
+            .smd-alert{padding:6px 10px;border-radius:4px;font-weight:600}
+            .smd-alert.ok{background:#e6ffea;color:#1f7a1f}
+            .smd-alert.warn{background:#fff4e6;color:#7a5f1f}
+            .smd-alert.crit{background:#ffe6e6;color:#7a1f1f}
+        ";
+        wp_add_inline_style('wp-admin', $css);
+    }
+
+    private function get_inline_js() {
+        // JS logic: create charts, poll REST or AJAX, update labels and colors
+        return <<<JS
+(function(){
+    const cfg = window.smdConfig || {};
+    const refresh = cfg.refresh || 2;
+    const ajaxUrl = cfg.ajaxUrl;
+    const nonce = cfg.nonce;
+    const alerts = cfg.alerts || {cpu:80, ram:80, disk:90};
+
+    // helper - create chart
+    function makeChart(elId, color, max=100){
+        const ctx = document.getElementById(elId)?.getContext('2d');
+        if(!ctx) return null;
+        return new Chart(ctx, {
+            type:'line',
+            data:{labels:Array(60).fill(''), datasets:[{data:Array(60).fill(0), borderColor:color, backgroundColor:color.replace('1)', '0.12)'), tension:0.3, borderWidth:2, pointRadius:0, fill:true}]},
+            options:{responsive:true, animation:false, plugins:{legend:{display:false}, tooltip:{enabled:false}}, scales:{x:{grid:{color:'rgba(200,200,200,0.05)'}}, y:{min:0, max:max, grid:{color:'rgba(200,200,200,0.1)'}}}}
+        });
+    }
+
+    let charts = {
+        cpu: makeChart('smdCpuChart','rgba(0,123,255,1)'),
+        ram: makeChart('smdRamChart','rgba(40,200,120,1)'),
+        disk: makeChart('smdDiskChart','rgba(255,140,0,1)'),
+        netUp: makeChart('smdNetUpChart','rgba(0,150,255,1)', 100),
+        netDown: makeChart('smdNetDownChart','rgba(200,0,150,1)', 200)
+    };
+
+    function push(arr, val, maxLen=60){ arr.push(val); if(arr.length>maxLen) arr.shift(); return arr; }
+
+    // storage for data
+    let dataStore = {cpu:[], ram:[], disk:[], netUp:[], netDown:[]};
+
+    // fetch via REST if available, otherwise AJAX
+    function fetchStats(){
+        fetch(cfg.restBase, {headers:{'X-WP-NONCE': nonce}})
+        .then(r=>{
+            if(!r.ok) throw null;
+            return r.json();
+        })
+        .catch(()=> {
+            // fallback to admin-ajax
+            const fd = new FormData();
+            fd.append('action','smd_get_stats');
+            fd.append('nonce', nonce);
+            return fetch(ajaxUrl, {method:'POST', body: fd}).then(r=>r.json()).then(j=> j.success ? j.data : Promise.reject('ajax fail'));
+        })
+        .then(d=>{
+            // update numeric labels
+            document.getElementById('smdCpuLabel').textContent = d.cpu + '%';
+            document.getElementById('smdRamLabel').textContent = d.ram_percent + '%';
+            document.getElementById('smdDiskLabel').textContent = d.disk_percent + '%';
+            document.getElementById('smdNetUpLabel').textContent = d.net_up + ' Mbps';
+            document.getElementById('smdNetDownLabel').textContent = d.net_down + ' Mbps';
+            document.getElementById('smdUptime').textContent = d.uptime || '-';
+            document.getElementById('smdLoadAvg').textContent = d.load_avg ? d.load_avg.join(', ') : '-';
+            document.getElementById('smdDbSize').textContent = d.db_size || '-';
+
+            // update alerts
+            applyAlert('smdCpuAlert', d.cpu, alerts.cpu);
+            applyAlert('smdRamAlert', d.ram_percent, alerts.ram);
+            applyAlert('smdDiskAlert', d.disk_percent, alerts.disk);
+
+            // push to charts
+            pushAndUpdate('cpu', d.cpu);
+            pushAndUpdate('ram', d.ram_percent);
+            pushAndUpdate('disk', d.disk_percent);
+            pushAndUpdate('netUp', d.net_up);
+            pushAndUpdate('netDown', d.net_down);
+        })
+        .catch(e=>{
+            // silently fail - could display an error box
+            //console.log('smd fetch failed', e);
+        });
+    }
+
+    function applyAlert(elId, value, threshold){
+        const el = document.getElementById(elId);
+        if(!el) return;
+        el.classList.remove('ok','warn','crit');
+        if(value >= Math.max(95, threshold + 10)) el.classList.add('crit');
+        else if(value >= threshold) el.classList.add('warn');
+        else el.classList.add('ok');
+    }
+
+    function pushAndUpdate(key, val){
+        dataStore[key] = push(dataStore[key], Number(val||0));
+        const ch = charts[key];
+        if(!ch) return;
+        ch.data.datasets[0].data = dataStore[key].slice(-60);
+        ch.update();
+    }
+
+    // start
+    fetchStats();
+    setInterval(fetchStats, Math.max(1000, refresh*1000));
+})();
+JS;
+    }
+
+    public function register_rest_routes() {
+        register_rest_route('system-monitor/v1', '/stats', [
+            'methods' => 'GET',
+            'callback' => [$this, 'rest_get_stats'],
+            'permission_callback' => function() { return current_user_can('manage_options'); }
+        ]);
+    }
+
+    public function rest_get_stats($request) {
+        return rest_ensure_response($this->collect_stats());
+    }
+
+    public function ajax_get_stats() {
+        check_ajax_referer('smd_nonce', 'nonce');
+        $data = $this->collect_stats();
+        wp_send_json_success($data);
+    }
+
+    private function collect_stats() {
+        $opts = wp_parse_args(get_option($this->option_name, []), $this->defaults);
+        $cache_ttl = max(1, (int)$opts['cache_ttl']);
+        $cached = get_transient('smd_stats_cache');
+        if ($cached) return $cached;
+
+        $use_real = !empty($opts['use_real_metrics']);
+
+        // CPU: try sys_getloadavg, convert to percent by cores
+        $cpu_percent = 0;
+        $load = null;
+        if (function_exists('sys_getloadavg')) {
+            $load = sys_getloadavg(); // [1,5,15]
+            $cores = $this->get_cpu_cores();
+            if ($cores > 0) {
+                $cpu_percent = min(100, round(($load[0] / $cores) * 100, 1));
+            } else {
+                $cpu_percent = min(100, round($load[0] * 10, 1));
             }
-          }
+        } else {
+            $cpu_percent = rand(5, 30);
         }
-      }
-    }
-  });
-});
-// Create animated disk donut chart
-const diskDonut = new Chart(document.getElementById('smtmDiskDonut').getContext('2d'), {
-  type: 'doughnut',
-  data: {
-    labels: ['Used', 'Free'],
-    datasets: [{
-      data: [45, 55], // starting values
-      backgroundColor: ['#ccc', '#00bfa5'],
-      borderWidth: 1
-    }]
-  },
-  options: {
-    responsive: true,
-    animation: {
-      animateScale: true,
-      animateRotate: true
-    },
-    plugins: {
-      legend: { position: 'bottom' },
-      tooltip: {
-        callbacks: {
-          label: function(context) {
-            return context.label + ': ' + context.formattedValue + ' GB';
-          }
+
+        // Memory: try /proc/meminfo on Linux
+        $ram_percent = 0;
+        $ram_total_mb = 0;
+        $ram_used_mb = 0;
+        if ($use_real && file_exists('/proc/meminfo')) {
+            $mem = @file_get_contents('/proc/meminfo');
+            if ($mem !== false) {
+                preg_match('/MemTotal:\s+(\d+) kB/i', $mem, $m1);
+                preg_match('/MemAvailable:\s+(\d+) kB/i', $mem, $m2);
+                if (!empty($m1[1]) && !empty($m2[1])) {
+                    $ram_total_kb = (int)$m1[1];
+                    $ram_avail_kb = (int)$m2[1];
+                    $ram_used_kb = $ram_total_kb - $ram_avail_kb;
+                    $ram_total_mb = round($ram_total_kb / 1024, 1);
+                    $ram_used_mb = round($ram_used_kb / 1024, 1);
+                    $ram_percent = round(($ram_used_kb / $ram_total_kb) * 100, 1);
+                }
+            }
         }
-      }
+
+        // fallback / simulation if not found
+        if ($ram_percent === 0) {
+            // try PHP memory_get_usage to at least show some movement
+            $php_used_mb = round(memory_get_usage(true) / (1024*1024), 1);
+            $php_limit = $this->php_memory_limit_mb();
+            $ram_percent = $php_limit > 0 ? round(($php_used_mb / $php_limit) * 100, 1) : rand(20,70);
+            $ram_total_mb = $php_limit;
+            $ram_used_mb = $php_used_mb;
+        }
+
+        // Disk usage for WP root
+        $path = ABSPATH;
+        $disk_total = @disk_total_space($path);
+        $disk_free = @disk_free_space($path);
+        $disk_percent = 0;
+        if ($disk_total > 0 && $disk_free !== false) {
+            $disk_percent = round((($disk_total - $disk_free) / $disk_total) * 100, 1);
+            $disk_total_gb = round($disk_total / (1024*1024*1024), 2);
+        } else {
+            $disk_percent = rand(10,60);
+            $disk_total_gb = '-';
+        }
+
+        // Uptime and load average
+        $uptime = $this->get_uptime();
+        $load_avg = $load ?? (function_exists('sys_getloadavg') ? sys_getloadavg() : null);
+
+        // Network (simulated unless you implement real collection)
+        if ($use_real) {
+            // you can implement reading from /proc/net/dev or `ifconfig` output
+            $net_up = rand(1,40);
+            $net_down = rand(1,120);
+        } else {
+            $net_up = rand(0,40);
+            $net_down = rand(0,120);
+        }
+
+        // DB size approx (INFORMATION_SCHEMA)
+        global $wpdb;
+        $db_size = $this->get_db_size();
+
+        // WordPress counts
+        $posts = wp_count_posts()->publish ?? 0;
+        $pages = wp_count_posts('page')->publish ?? 0;
+        $users = count_users()['total_users'] ?? 0;
+
+        // Top processes (Linux best-effort)
+        $top_procs = $this->get_top_processes();
+
+        $out = [
+            'cpu' => $cpu_percent,
+            'load_avg' => $load_avg,
+            'ram_percent' => $ram_percent,
+            'ram_total_mb' => $ram_total_mb,
+            'ram_used_mb' => $ram_used_mb,
+            'php_memory_mb' => round(memory_get_usage(true)/(1024*1024),1),
+            'disk_percent' => $disk_percent,
+            'disk_total_gb' => $disk_total_gb ?? '-',
+            'uptime' => $uptime,
+            'net_up' => $net_up,
+            'net_down' => $net_down,
+            'db_size' => $db_size,
+            'posts' => $posts,
+            'pages' => $pages,
+            'users' => $users,
+            'top_processes' => $top_procs,
+        ];
+
+        set_transient('smd_stats_cache', $out, $cache_ttl);
+
+        return $out;
     }
-  }
-});
 
-// Animate values every 2 seconds
-setInterval(() => {
-  let used = Math.floor(Math.random() * 60) + 20; // demo random value
-  let free = 100 - used;
-  diskDonut.data.datasets[0].data = [used, free];
-  diskDonut.update({
-    duration: 1000,
-    easing: 'easeOutBounce'
-  });
-}, 2000);
+    private function get_cpu_cores() {
+        // Linux nproc
+        if (is_readable('/proc/cpuinfo')) {
+            $cpuinfo = @file_get_contents('/proc/cpuinfo');
+            if ($cpuinfo !== false) {
+                preg_match_all('/^processor/m', $cpuinfo, $m);
+                if (!empty($m[0])) return count($m[0]);
+            }
+        }
+        // try nproc
+        if (function_exists('shell_exec')) {
+            $n = @shell_exec('nproc 2>/dev/null');
+            if ($n !== null) return (int)trim($n);
+        }
+        return 1;
+    }
 
-let cpu=[],ram=[],disk=[],netUp=[],netDown=[],proc=[];
-const maxPoints=60;
-function pushData(arr,val){ arr.push(val); if(arr.length>maxPoints) arr.shift(); }
-function makeChart(id,color,label){
-    return new Chart(document.getElementById(id).getContext('2d'),{
-        type:'line',
-        data:{labels:Array(maxPoints).fill(''),datasets:[{
-            label:label,
-            data:Array(maxPoints).fill(0),
-            borderColor:color,
-            backgroundColor:color.replace('1)','0.15)'),
-            tension:0.25,
-            borderWidth:2,
-            pointRadius:0,
-            fill:true
-        }]},
-        options:{
-            responsive:true,
-            animation:false,
-            plugins:{
-                legend:{display:false},
-                tooltip:{
-                    enabled: true,
-                    mode: 'index',
-                    intersect: false,
-                    callbacks: {
-                    label: function(context) {
-                    return context.dataset.label + ': ' + context.formattedValue;
+    private function php_memory_limit_mb() {
+        $ml = ini_get('memory_limit');
+        if (!$ml) return 0;
+        if ($ml === '-1') return 0;
+        $last = strtolower(substr($ml, -1));
+        $val = (int)$ml;
+        switch($last) {
+            case 'g': return $val * 1024;
+            case 'm': return $val;
+            case 'k': return round($val / 1024, 1);
+            default: return $val;
+        }
+    }
 
-                        }
+    private function get_uptime() {
+        if (function_exists('shell_exec')) {
+            $out = @shell_exec('uptime -p 2>/dev/null');
+            if ($out) return trim($out);
+        }
+        if (is_readable('/proc/uptime')) {
+            $u = file_get_contents('/proc/uptime');
+            if ($u) {
+                $secs = (int)floor(floatval(explode(' ', $u)[0]));
+                return $this->seconds_to_human($secs);
+            }
+        }
+        return 'N/A';
+    }
+
+    private function seconds_to_human($s) {
+        $d = floor($s/86400); $s -= $d*86400;
+        $h = floor($s/3600); $s -= $h*3600;
+        $m = floor($s/60); $s -= $m*60;
+        $out = [];
+        if ($d) $out[] = $d.'d';
+        if ($h) $out[] = $h.'h';
+        if ($m) $out[] = $m.'m';
+        if (!$out) $out[] = $s.'s';
+        return implode(' ', $out);
+    }
+
+    private function get_db_size() {
+        global $wpdb;
+        $prefix = $wpdb->prefix;
+        $tables = $wpdb->get_results("SHOW TABLE STATUS LIKE '{$prefix}%'", ARRAY_A);
+        if (!$tables) return '-';
+        $size = 0;
+        foreach ($tables as $t) {
+            $size += ($t['Data_length'] + $t['Index_length']);
+        }
+        return round($size / (1024*1024), 2) . ' MB';
+    }
+
+    private function get_top_processes($limit = 5) {
+        $out = [];
+        if (function_exists('shell_exec')) {
+            // try ps and sort by memory
+            $cmd = "ps -eo pid,ppid,cmd,%mem,%cpu --sort=-%mem | head -n " . (int)($limit+1) . " 2>/dev/null";
+            $txt = @shell_exec($cmd);
+            if ($txt) {
+                $lines = array_filter(array_map('trim', explode(PHP_EOL, $txt)));
+                // drop header if exists
+                if (count($lines) > 1) array_shift($lines);
+                foreach (array_slice($lines, 0, $limit) as $ln) {
+                    $parts = preg_split('/\s+/', $ln, 5);
+                    if (count($parts) >= 5) {
+                        $out[] = ['pid' => $parts[0], 'mem' => $parts[3], 'cpu' => $parts[4] ?? '', 'cmd' => $parts[4]];
                     }
                 }
-            },
-            scales:{
-                x:{grid:{color:'rgba(200,200,200,0.05)'}},
-                y:{min:0,max:100,grid:{color:'rgba(200,200,200,0.1)'}}
             }
         }
-    });
-}
-let cpuChart,ramChart,diskChart,netUpChart,netDownChart,procChart;
-document.addEventListener('DOMContentLoaded',()=>{
-    cpuChart = makeChart('smtmCpuChart','rgba(0,200,255,1)','CPU');
-    ramChart = makeChart('smtmRamChart','rgba(0,255,150,1)','RAM');
-    diskChart = makeChart('smtmDiskChart','rgba(255,120,0,1)','Disk');
-    netUpChart = makeChart('smtmNetUpChart','rgba(0,150,255,1)','Network Up');
-    netDownChart = makeChart('smtmNetDownChart','rgba(255,0,150,1)','Network Down');
-    procChart = makeChart('smtmProcChart','rgba(150,50,250,1)','Processes');
-    fetchStats(); setInterval(fetchStats,2000);
-});
-function fetchStats(){
-    const fd=new FormData(); fd.append('action','smtm_stats'); fd.append('nonce',smtm_ajax.nonce);
-    fetch(smtm_ajax.url,{method:'POST',body:fd}).then(r=>r.json()).then(r=>{
-        if(!r.success)return; let d=r.data;
-        pushData(cpu,d.cpu_norm); pushData(ram,d.ram_percent); pushData(disk,d.disk_percent);
-        pushData(netUp,d.net_up); pushData(netDown,d.net_down); pushData(proc,d.proc_count);
-        cpuChart.data.datasets[0].data=[...cpu];
-        ramChart.data.datasets[0].data=[...ram];
-        diskChart.data.datasets[0].data=[...disk];
-        netUpChart.data.datasets[0].data=[...netUp];
-        netDownChart.data.datasets[0].data=[...netDown];
-        procChart.data.datasets[0].data=[...proc];
-        cpuChart.update(); ramChart.update(); diskChart.update();
-        netUpChart.update(); netDownChart.update(); procChart.update();
-        document.getElementById('smtmCpuLabel').textContent = d.cpu_norm + '%';
-        document.getElementById('smtmRamLabel').textContent = d.ram_percent + '%';
-        document.getElementById('smtmDiskLabel').textContent = d.disk_percent + '%';
-        document.getElementById('smtmNetUpLabel').textContent = d.net_up + ' Mbps';
-        document.getElementById('smtmNetDownLabel').textContent = d.net_down + ' Mbps';
-        document.getElementById('smtmProcLabel').textContent = d.proc_count + ' processes';
-    });
-    
-}
-EOT;
+        return $out;
+    }
 
-    wp_add_inline_script('chartjs', $js, 'after');
+    public function render_page() {
+        $stats = $this->collect_stats(); // show initial snapshot on page load
+        $opts = wp_parse_args(get_option($this->option_name, []), $this->defaults);
+        ?>
+        <div class="smd-wrap">
+            <h1>Server Monitor — Enhanced</h1>
 
-    $css = "
-        .smtm-wrap{max-width:1100px;margin:20px auto;padding:15px;background:#fff;border-radius:10px;}
-        .smtm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:15px;}
-        .smtm-card{padding:10px;border:1px solid #ddd;border-radius:6px;background:#fafafa;position:relative;}
-        .smtm-chart{height:200px;}
-        .smtm-label{position:absolute;top:8px;right:10px;font-weight:bold;color:#333;}
-         canvas{pointer-events:auto;}
-        .smtm-card ul {list-style: none;padding: 0;margin: 0;}
-        .smtm-card li {padding: 4px 0;border-bottom: 1px solid #eee;}
-       
-    ";
-    wp_add_inline_style('wp-admin', $css);
-}
+            <div class="smd-info-grid">
+                <div class="smd-info-card"><strong>PHP Version:</strong> <?php echo phpversion(); ?></div>
+                <div class="smd-info-card"><strong>MySQL Version:</strong> <?php global $wpdb; echo esc_html($wpdb->db_version()); ?></div>
+                <div class="smd-info-card"><strong>WordPress:</strong> <?php echo esc_html(get_bloginfo('version')); ?></div>
+                <div class="smd-info-card"><strong>Memory Limit:</strong> <?php echo esc_html(ini_get('memory_limit')); ?></div>
+                <div class="smd-info-card"><strong>Max Upload:</strong> <?php echo esc_html(ini_get('upload_max_filesize')); ?></div>
+                <div class="smd-info-card"><strong>DB Size:</strong> <span id="smdDbSize"><?php echo esc_html($stats['db_size']); ?></span></div>
+            </div>
 
-// AJAX handler
-add_action('wp_ajax_smtm_stats','smtm_stats_ajax');
-function smtm_stats_ajax() {
-    check_ajax_referer('smtm_nonce','nonce');
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
+                <div class="smd-alert <?php echo ($stats['cpu'] >= $opts['alert_cpu'] ? 'warn' : 'ok'); ?>" id="smdCpuAlert">CPU</div>
+                <div class="smd-alert <?php echo ($stats['ram_percent'] >= $opts['alert_ram'] ? 'warn' : 'ok'); ?>" id="smdRamAlert">RAM</div>
+                <div class="smd-alert <?php echo ($stats['disk_percent'] >= $opts['alert_disk'] ? 'warn' : 'ok'); ?>" id="smdDiskAlert">Disk</div>
+                <div style="margin-left:auto">Uptime: <strong id="smdUptime"><?php echo esc_html($stats['uptime']); ?></strong> &nbsp; Load: <strong id="smdLoadAvg"><?php echo is_array($stats['load_avg']) ? implode(', ', $stats['load_avg']) : '-'; ?></strong></div>
+            </div>
 
-    $cpu_norm = max(0,min(100,(get_transient('smtm_last_cpu') ?: rand(5,30)) + rand(-5,5)));
-    set_transient('smtm_last_cpu',$cpu_norm,2);
+            <div class="smd-grid">
+                <div class="smd-card"><h4>CPU <span class="smd-label" id="smdCpuLabel"><?php echo esc_html($stats['cpu']); ?>%</span></h4><canvas id="smdCpuChart" class="smd-chart"></canvas></div>
+                <div class="smd-card"><h4>RAM <span class="smd-label" id="smdRamLabel"><?php echo esc_html($stats['ram_percent']); ?>%</span></h4><canvas id="smdRamChart" class="smd-chart"></canvas></div>
+                <div class="smd-card"><h4>Disk <span class="smd-label" id="smdDiskLabel"><?php echo esc_html($stats['disk_percent']); ?>%</span></h4><canvas id="smdDiskChart" class="smd-chart"></canvas></div>
+                <div class="smd-card"><h4>Net Up <span class="smd-label" id="smdNetUpLabel"><?php echo esc_html($stats['net_up']); ?> Mbps</span></h4><canvas id="smdNetUpChart" class="smd-chart"></canvas></div>
+                <div class="smd-card"><h4>Net Down <span class="smd-label" id="smdNetDownLabel"><?php echo esc_html($stats['net_down']); ?> Mbps</span></h4><canvas id="smdNetDownChart" class="smd-chart"></canvas></div>
+            </div>
 
-    $ram_percent = max(0,min(100,(get_transient('smtm_last_ram') ?: rand(20,80)) + rand(-3,3)));
-    set_transient('smtm_last_ram',$ram_percent,5);
+            <h3 style="margin-top:18px">WordPress</h3>
+            <div class="smd-info-grid" style="margin-bottom:10px;">
+                <div class="smd-info-card">Posts: <?php echo esc_html($stats['posts']); ?></div>
+                <div class="smd-info-card">Pages: <?php echo esc_html($stats['pages']); ?></div>
+                <div class="smd-info-card">Users: <?php echo esc_html($stats['users']); ?></div>
+                <div class="smd-info-card">Top processes: <?php
+                    if (!empty($stats['top_processes'])) {
+                        echo '<ul style="margin:6px 0;padding-left:18px;">';
+                        foreach ($stats['top_processes'] as $p) {
+                            printf('<li style="font-size:12px">PID %s — %s</li>', esc_html($p['pid'] ?? ''), esc_html($p['cmd'] ?? ''));
+                        }
+                        echo '</ul>';
+                    } else { echo '-'; }
+                ?></div>
+            </div>
+        </div>
+        <?php
+    }
 
-    $disk_percent = max(0,min(100,(get_transient('smtm_last_disk') ?: rand(30,70)) + rand(-2,2)));
-    set_transient('smtm_last_disk',$disk_percent,5);
+    public function render_settings_page() {
+        ?>
+        <div class="wrap">
+            <h1>Server Monitor Settings</h1>
+            <form method="post" action="options.php">
+                <?php
+                settings_fields($this->option_name);
+                do_settings_sections($this->option_name);
+                submit_button();
+                ?>
+            </form>
+        </div>
+        <?php
+    }
 
-    $net_up = max(0,min(100,(get_transient('smtm_last_net_up') ?: rand(1,20)) + rand(-2,2)));
-    set_transient('smtm_last_net_up',$net_up,2);
+} // end class
 
-    $net_down = max(0,min(100,(get_transient('smtm_last_net_down') ?: rand(1,50)) + rand(-3,3)));
-    set_transient('smtm_last_net_down',$net_down,2);
+// bootstrap
+Server_Monitor_Dashboard::instance();
 
-    $proc_count = max(50,min(150,(get_transient('smtm_last_proc') ?: rand(80,120)) + rand(-5,5)));
-    set_transient('smtm_last_proc',$proc_count,5);
-
-    wp_send_json_success([
-        'cpu_norm'=>$cpu_norm,
-        'ram_percent'=>$ram_percent,
-        'disk_percent'=>$disk_percent,
-        'net_up'=>$net_up,
-        'net_down'=>$net_down,
-        'proc_count'=>$proc_count
-    ]);
-}
-
-// Admin page
-function smtm_page_content(){
-?>
-<div class="smtm-wrap">
-    <h1>Server Monitor — Task Manager Style</h1>
-    <div class="smtm-grid">
-        <div class="smtm-card"><h4>CPU <span class="smtm-label" id="smtmCpuLabel">0%</span></h4><canvas id="smtmCpuChart" class="smtm-chart"></canvas></div>
-        <div class="smtm-card"><h4>RAM <span class="smtm-label" id="smtmRamLabel">0%</span></h4><canvas id="smtmRamChart" class="smtm-chart"></canvas></div>
-        <div class="smtm-card"><h4>Disk <span class="smtm-label" id="smtmDiskLabel">0%</span></h4><canvas id="smtmDiskChart" class="smtm-chart"></canvas></div>
-        <div class="smtm-card"><h4>Network Up <span class="smtm-label" id="smtmNetUpLabel">0 Mbps</span></h4><canvas id="smtmNetUpChart" class="smtm-chart"></canvas></div>
-        <div class="smtm-card"><h4>Network Down <span class="smtm-label" id="smtmNetDownLabel">0 Mbps</span></h4><canvas id="smtmNetDownChart" class="smtm-chart"></canvas></div>
-        <div class="smtm-card"><h4>Processes <span class="smtm-label" id="smtmProcLabel">0</span></h4><canvas id="smtmProcChart" class="smtm-chart"></canvas></div>
-        <div class="smtm-card"><h4>Disk Space</h4> <canvas id="smtmDiskDonut" class="smtm-chart"></canvas></div>
-        
-    </div>
-
-    
-</div>
-<div class="smtm-card">
-  <h4>Server / PHP / WP Info</h4>
-  <ul>
-    <li>PHP Version: <?php echo phpversion(); ?></li>
-    <li>MySQL Version: <?php global $wpdb; echo $wpdb->db_version(); ?></li>
-    <li>WordPress Version: <?php echo get_bloginfo('version'); ?></li>
-    <li>Memory Limit: <?php echo ini_get('memory_limit'); ?></li>
-    <li>Max Upload Size: <?php echo ini_get('upload_max_filesize'); ?></li>
-  </ul>
-</div>
-
-<div class="smtm-card">
-  <h4>WordPress Content Stats</h4>
-  <ul>
-    <li>Posts Count: <?php echo wp_count_posts()->publish; ?></li>
-    <li>Pages Count: <?php echo wp_count_posts('page')->publish; ?></li>
-    <li>Users Count: <?php echo count_users()['total_users']; ?></li>
-  </ul>
-</div>
-
-<?php
-}
-
+} // endif class exists
