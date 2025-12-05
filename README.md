@@ -14,7 +14,7 @@
 
 #### Dark Theme
 
-![Server Resource Dashboard](.\Resources\ScreenShots\dashboard-dark-v1.3.png)
+![Server Resource Dashboard](System-Monitor-Dashboard-Plugin\Resources\ScreenShots\dashboard-dark-v1.3.png)
 
 
 
