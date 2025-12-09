@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Server Monitor Dashboard
  * Description: Live CPU, RAM, Disk, Network, and Process charts in a top-level menu below Dashboard.
- * Version: 1.3
+ * Version: 1.4
  * Author: Zahid Hasan
  * Author URI: https://zahidhasan.github.io
  * License: MIT License
@@ -130,6 +130,7 @@ class Server_Monitor_Dashboard {
             .smd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-bottom:18px;}
             .smd-card{padding:12px;border:1px solid #ccc;border-radius:8px;background:#f0f0f0;position:relative;}
             .smd-chart{height:200px}
+            #smdSpiderChart{height:300px !important;}
             .smd-label{position:absolute;top:10px;right:12px;font-weight:600;color:#222}
             .smd-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px;}
             .smd-info-card{padding:10px;border-radius:6px;background:#f8f8f8;border:1px solid #eee}
@@ -137,6 +138,7 @@ class Server_Monitor_Dashboard {
             .smd-alert.ok{background:#e6ffea;color:#1f7a1f}
             .smd-alert.warn{background:#fff4e6;color:#7a5f1f}
             .smd-alert.crit{background:#ffe6e6;color:#7a1f1f}
+            
             
         ";
         wp_add_inline_style('wp-admin', $css);
@@ -183,13 +185,41 @@ class Server_Monitor_Dashboard {
         });
     }
 
+    // helper - spider/radar chart
+function makeSpiderChart(elId, data){
+    const ctx = document.getElementById(elId)?.getContext('2d');
+    if(!ctx) return null;
+    return new Chart(ctx, {
+        type:'radar',
+        data:{
+            labels:["CPU","RAM","Disk","Net Up","Net Down"],
+            datasets:[{
+                label:"System Metrics",
+                data:data,
+                backgroundColor:"rgba(54,162,235,0.2)",
+                borderColor:"rgba(54,162,235,1)",
+                borderWidth:2
+            }]
+        },
+        options:{
+            responsive:true,
+            scales:{ r:{ suggestedMin:0, suggestedMax:100 } }
+        }
+    });
+}
+
+
+
     let charts = {
         cpu: makeChart('smdCpuChart','rgba(0,123,255,1)'),
         ram: makeChart('smdRamChart','rgba(40,200,120,1)'),
         disk: makeChart('smdDiskChart','rgba(255,140,0,1)'),
         netUp: makeChart('smdNetUpChart','rgba(0,150,255,1)', 100),
         netDown: makeChart('smdNetDownChart','rgba(200,0,150,1)', 200),
-        diskPie: makePieChart('smdDiskPieChart', 0, 100)
+        diskPie: makePieChart('smdDiskPieChart', 0, 100),
+        spider: makeSpiderChart('smdSpiderChart', [0,0,0,0,0])
+
+
     };
 
     function push(arr, val, maxLen=60){ arr.push(val); if(arr.length>maxLen) arr.shift(); return arr; }
@@ -233,6 +263,18 @@ class Server_Monitor_Dashboard {
                 charts.diskPie.data.datasets[0].data = [d.disk_percent, Math.max(0, 100 - d.disk_percent)];
                 charts.diskPie.update();
             }
+            if(charts.spider){
+                charts.spider.data.datasets[0].data = [
+                    d.cpu,
+                    d.ram_percent,
+                    d.disk_percent,
+                    d.net_up,
+                    d.net_down
+            ];
+            charts.spider.update();
+}
+
+
         })
         .catch(()=>{ /* no-op */ });
     }
@@ -485,7 +527,7 @@ JS;
         $opts = wp_parse_args(get_option($this->option_name, []), $this->defaults);
         ?>
         <div class="smd-wrap">
-            <h1>Server Monitor — Enhanced</h1>
+            <h1>Server Monitor Dashboard</h1>
 
             <div class="smd-info-grid">
                 <div class="smd-info-card"><strong>PHP Version:</strong> <?php echo phpversion(); ?></div>
@@ -504,6 +546,7 @@ JS;
             </div>
 
             <div class="smd-grid">
+                <div class="smd-card"><h4>Overall Metrics</h4><canvas id="smdSpiderChart" class="smd-chart"></canvas></div>
                 <div class="smd-card"><h4>CPU <span class="smd-label" id="smdCpuLabel"><?php echo esc_html($stats['cpu']); ?>%</span></h4><canvas id="smdCpuChart" class="smd-chart"></canvas></div>
                 <div class="smd-card"><h4>RAM <span class="smd-label" id="smdRamLabel"><?php echo esc_html($stats['ram_percent']); ?>%</span></h4><canvas id="smdRamChart" class="smd-chart"></canvas></div>
                 <div class="smd-card"><h4>Disk <span class="smd-label" id="smdDiskLabel"><?php echo esc_html($stats['disk_percent']); ?>%</span></h4><canvas id="smdDiskChart" class="smd-chart"></canvas></div>
