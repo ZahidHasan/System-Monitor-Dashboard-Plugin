@@ -22,19 +22,19 @@
 
 #### Dark Theme
 
-![Server Resource Dashboard](/Resources/ScreenShots/dashboard-dark-v1.3.png)
+![Server Resource Dashboard](/Resources/ScreenShots/server-dark-v1.4.1.png)
 
 
 
 #### White Theme
 
-![Server Resource Dashboard](/Resources/ScreenShots/dashboard-white-v1.3.png)
+![Server Resource Dashboard](/Resources/ScreenShots/server-white-v1.4.1.png)
 
 
 
 #### Setting
 
-![Server Resource Dashboard](/Resources/ScreenShots/dashboard-setting-v1.3.png)
+![Server Resource Dashboard](/Resources/ScreenShots/server-setting-v1.4.1.png)
 
 ```markdown
 # 🖥️ System Monitor Dashboard Plugin
