@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Server Monitor Dashboard
  * Description: Live CPU, RAM, Disk, Network, and Process charts in a top-level menu below Dashboard.
- * Version: 1.4
+ * Version: 1.4.2
  * Author: Zahid Hasan
  * Author URI: https://zahidhasan.github.io
  * License: MIT License
