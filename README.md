@@ -1,4 +1,6 @@
-# Server Monitor Dashboard Plugin
+# WordPress Server Monitor Dashboard Plugin
+
+Real‑time WordPress plugin delivering CPU, RAM, Disk, Network, Process, and MySQL Buffer insights in one unified cockpit.
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![WordPress Tested](https://img.shields.io/badge/WordPress-6.4.2-blue)
@@ -9,132 +11,152 @@
 ![Pull Requests](https://img.shields.io/github/issues-pr/zahidhasan/System-Monitor-Dashboard-Plugin)
 ![Stars](https://img.shields.io/github/stars/zahidhasan/System-Monitor-Dashboard-Plugin?style=social)
 
+---
 
+## 🖥️ Overview
 **Version:** 2.0  
 **Author:** Zahid Hasan  
-**Description:** Live CPU, RAM, Disk, Network, and Process charts in a top-level WordPress admin menu.
+
+A lightweight WordPress plugin that provides a **real‑time system monitoring dashboard**.  
+Live CPU, RAM, Disk, Network, Process, and MySQL Buffer charts appear in a top-level WordPress menu.  
+
+Built with **PHP** and **PowerShell automation**, this plugin helps developers and sysadmins visualize server health directly inside WordPress.
 
 ---
 
 ## 📸 Screenshots
 
-### Server Resource Dashboard This dashboard provides real-time monitoring of server resources including CPU load, RAM usage, and disk space.
-
-#### Dark Theme
-
+### Dark Theme
 ![Server Resource Dashboard](/Resources/ScreenShots/server-dark-v1.4.1.png)
 
-
-
-#### White Theme
-
+### Light Theme
 ![Server Resource Dashboard](/Resources/ScreenShots/server-white-v1.4.1.png)
 
-
-
-#### Setting
-
+### Settings
 ![Server Resource Dashboard](/Resources/ScreenShots/server-setting-v1.4.1.png)
 
-```markdown
-# 🖥️ System Monitor Dashboard Plugin
+---
 
-A lightweight WordPress plugin that provides a real‑time system monitoring dashboard.  
-Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this plugin helps developers and sysadmins visualize CPU, RAM, and disk stats directly inside WordPress.
+## 🚀 Features
+- 📊 Real-time charts: CPU, RAM, Disk, Network I/O  
+- 🧠 Info panels: PHP, MySQL, WordPress version, memory limits, DB size  
+- 📚 WordPress content stats: posts, pages, users  
+- ⚡ AJAX + REST-powered updates every 2 seconds  
+- 🎨 Clean, responsive layout with Chart.js  
+- 🛡️ Alert thresholds for CPU, RAM, and Disk usage  
+- 🔍 Top processes view  
 
+---
 
+## 📊 Chart Guide
+- **CPU Usage** → Detect spikes and bottlenecks  
+- **RAM Usage** → Spot leaks or heavy processes  
+- **Disk Usage** → Monitor capacity and I/O activity  
+- **Network Throughput** → Identify unusual traffic or saturation  
+- **Process Count** → Detect runaway tasks  
+- **MySQL Buffer Pool** → Optimize caching and DB performance  
+- **Spider Chart** → Holistic system overview  
 
-# 🚀 Features
+---
 
-  - 📊 Real-time charts for:
-  - CPU usage
-  - RAM usage
-  - Disk usage
-  - Network I/O (Up/Down)
-  - Top processes
-  - 🍩 **New in v1.3**: Animated donut chart for disk space (Used vs Free)
-  - 🧠 Info panels:
-  - PHP version
-  - MySQL version
-  - WordPress version
-  - Memory limit
-  - Max upload size
-  - Database size
-  - 📚 WordPress content stats:
-  - Posts count
-  - Pages count
-  - Users count
-  - ⚡ AJAX + REST-powered updates every 2 seconds
-  - 🎨 Clean, responsive layout with Chart.js
-  - 🛡️ Alert thresholds for CPU, RAM, and Disk usage
+## 🛠 Troubleshooting
+- **CPU > 90%** → Check processes, optimize tasks, consider scaling  
+- **RAM > 85%** → Identify leaks, restart services, increase limits  
+- **Disk > 90%** → Clear logs/temp files, expand capacity  
+- **High Network I/O** → Inspect connections, apply firewall rules  
+- **Process spikes** → Audit cron jobs/services  
+- **MySQL Buffer > 80%** → Tune buffer size, optimize queries  
 
+---
 
-## 📦 Installation
+## 🛣 Roadmap
+**v2.1** → Uptime tracking, thread/process details, custom alerts  
+**v2.2** → Log viewer, service monitoring, historical trends  
+**v3.0** → Multi-server metrics, security insights, predictive capacity planning  
 
-1. Clone the repository:
-   git clone https://github.com/zahidhasan/system-monitor-dashboard.git
-2. Upload the plugin ZIP into WordPress (`Plugins → Add New → Upload Plugin`).
-3. Activate **System Monitor Dashboard** from the WordPress admin panel.
+---
 
+## ⚡ Quick Setup
+1. Upload plugin via WordPress Admin → Plugins → Add New → Upload  
+2. Activate the plugin  
+3. Access **Dashboard → Server Monitor**  
+
+---
+
+## 🛠 Installation
+1. Download latest release (Gumroad/CodeCanyon or repo)  
+2. Upload via WordPress Admin → Plugins → Add New → Upload Plugin  
+3. Activate plugin  
+4. Verify charts load correctly  
+5. Troubleshoot: check PHP version, remove BOM/whitespace, adjust polling interval  
+
+---
 
 ## ⚙️ Usage
+- Navigate to **Dashboard → Server Monitor**  
+- View live stats (CPU, RAM, Disk, Network, MySQL Buffer)  
+- Configure settings via plugin options  
 
-- Navigate to **Dashboard → Server Monitor** in WordPress.  
-- View live system stats (CPU, RAM, disk).  
-- Configure settings via the plugin options page.  
+---
 
+## 🛠 Requirements
+- WordPress 5.0+  
+- PHP 7.4+  
+- Chart.js (auto-loaded via CDN)  
 
+---
 
-## 🛠️ Requirements
+## ❓ FAQ
+- **CPU load vs Task Manager?** → Plugin shows averaged usage, Task Manager shows per-core peaks.  
+- **RAM mismatch?** → Task Manager includes cached/reserved memory; plugin shows active allocation.  
+- **MySQL Buffer Pool?** → Displays InnoDB buffer usage vs allocation.  
+- **Unexpected output during activation?** → Remove stray spaces/BOM characters.  
+- **Multi-server monitoring?** → Planned for v3.0.  
+- **Chart refresh rate?** → Default: every 2 seconds.  
+- **Performance impact?** → Minimal; adjust polling interval for high-traffic sites.  
+- **Network chart shows traffic with Wi-Fi off?** → Reads all interfaces (Ethernet, VPN, Docker, etc.), not just Wi-Fi.  
 
-- WordPress 5.0+
-- PHP 7.4+
-- Chart.js (auto-loaded via CDN)
-
-
-
-## 🛠️ Development Notes
-
-- Written in **PHP** with scaffolding automated by **PowerShell scripts**.  
-- GUI prototypes tested with **WinUI 3** for future desktop integration.  
-- Modular architecture allows adding new monitors (e.g., disk I/O, battery stats).  
-
-
-
-## 📚 Roadmap
-
-- [x] Add disk usage pie chart (v1.3)
-- [ ] RAM Disk Validator integration
-- [ ] Expand power plan monitoring
-- [ ] Export stats to CSV/JSON
-- [ ] Build WinUI 3 desktop companion app
-```
-
+---
 
 ## 🤝 Contributing
+- Report bugs → [GitHub Issues](https://github.com/zahidhasan/system-monitor-dashboard/issues)  
+- Request features → [GitHub Issues](https://github.com/zahidhasan/system-monitor-dashboard/issues)  
+- Fork → Branch → Commit → Pull Request  
 
-Pull requests are welcome!  
-For major changes, please open an issue first to discuss what you’d like to add.  
+Community Guidelines:  
+- Be respectful and constructive  
+- Keep discussions technical  
+- Contributions reviewed before merging  
 
-- Bug reports → [GitHub Issues](https://github.com/zahidhasan/system-monitor-dashboard/issues)  
-- Feature requests → [GitHub Issues](https://github.com/zahidhasan/system-monitor-dashboard/issues)  
+---
 
+## 💖 Support the Project
+If this plugin makes your server life easier, you can fuel my coding sessions with a coffee ☕:  
+- Buy Me a Coffee  
+- Ko‑fi  
+- Patreon  
 
+Every cup helps me keep building new features, polishing docs, and pushing updates. Thanks for supporting independent development!
+
+---
+
+## 📚 Glossary
+- **CPU** → Processor utilization  
+- **RAM** → Active memory usage  
+- **Disk Usage** → Storage capacity + I/O activity  
+- **Network Throughput** → Upload/download bandwidth across interfaces  
+- **Processes** → Active tasks/programs  
+- **MySQL Buffer Pool** → InnoDB cache utilization  
+- **Spider Chart** → Multi-axis overview of system health  
+- **Polling Interval** → Frequency of metric updates  
+
+---
 
 ## 📜 License
+MIT License — see [LICENSE](LICENSE)
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.  
-
-
+---
 
 ## 🙌 Credits
-
-- [Chart.js](https://www.chartjs.org/) for rendering interactive charts  
+- [Chart.js](https://www.chartjs.org/) for charts  
 - WordPress Plugin API for admin integration  
-  
-  
-## 📦 Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for full history.
-
-
