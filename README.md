@@ -10,9 +10,9 @@
 ![Stars](https://img.shields.io/github/stars/zahidhasan/System-Monitor-Dashboard-Plugin?style=social)
 
 
-**Version:** 1.2  
+**Version:** 2.0  
 **Author:** Zahid Hasan  
-**Description:** Live CPU, RAM, Disk, Network, and Process charts in a top-level WordPress admin menu — styled like a task manager dashboard.
+**Description:** Live CPU, RAM, Disk, Network, and Process charts in a top-level WordPress admin menu.
 
 ---
 
