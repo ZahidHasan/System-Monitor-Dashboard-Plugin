@@ -108,7 +108,7 @@ Built with **PHP**, **PowerShell automation**, and **WinUI 3 prototypes**, this 
 - [ ] Expand power plan monitoring
 - [ ] Export stats to CSV/JSON
 - [ ] Build WinUI 3 desktop companion app
-
+```
 
 
 ## 🤝 Contributing
@@ -137,4 +137,4 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.
 
-```
+
