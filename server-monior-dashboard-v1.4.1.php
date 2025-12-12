@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Server Monitor Dashboard
- * Description: Live CPU, RAM, Disk, Network, and Process charts in a top-level menu below Dashboard.
- * Version: 1.4.2
+ * Description: Live PHP Memory, Disk, Network, Database Size, and MySQL Buffer charts.
+ * Version: 1.4.1
  * Author: Zahid Hasan
  * Author URI: https://zahidhasan.github.io
  * License: MIT License
@@ -102,7 +102,8 @@ class Server_Monitor_Dashboard {
     public function field_use_real_metrics() {
         $opts = wp_parse_args(get_option($this->option_name, []), $this->defaults);
         $checked = $opts['use_real_metrics'] ? 'checked' : '';
-        echo "<label><input type='checkbox' name='{$this->option_name}[use_real_metrics]' value='1' {$checked} /> Try to read real system metrics (Linux friendly)</label>";
+        // NOTE: Changed description to clarify use of shell_exec
+        echo "<label><input type='checkbox' name='{$this->option_name}[use_real_metrics]' value='1' {$checked} /> Use real OS metrics (requires shell_exec/Linux friendly)</label>";
     }
 
     public function field_alert_thresholds() {
@@ -110,8 +111,8 @@ class Server_Monitor_Dashboard {
         $cpu = esc_attr($opts['alert_cpu']);
         $ram = esc_attr($opts['alert_ram']);
         $disk = esc_attr($opts['alert_disk']);
-        echo "CPU: <input style='width:70px' type='number' min='1' max='100' name='{$this->option_name}[alert_cpu]' value='{$cpu}' /> &nbsp; ";
-        echo "RAM: <input style='width:70px' type='number' min='1' max='100' name='{$this->option_name}[alert_ram]' value='{$ram}' /> &nbsp; ";
+        echo "Host Load: <input style='width:70px' type='number' min='1' max='100' name='{$this->option_name}[alert_cpu]' value='{$cpu}' /> &nbsp; ";
+        echo "PHP Memory: <input style='width:70px' type='number' min='1' max='100' name='{$this->option_name}[alert_ram]' value='{$ram}' /> &nbsp; ";
         echo "Disk: <input style='width:70px' type='number' min='1' max='100' name='{$this->option_name}[alert_disk]' value='{$disk}' />";
     }
 
@@ -162,7 +163,6 @@ class Server_Monitor_Dashboard {
             .smd-chart{height:200px}
             #smdSpiderChart{
                 height:300px !important; /* give it more breathing room */
-               
             }
 
             .smd-label{position:absolute;top:10px;right:12px;font-weight:600;color:#222}
@@ -238,24 +238,14 @@ class Server_Monitor_Dashboard {
         });
     }
 
-    // pie/donut chart
-    function makePieChart(elId, used, free){
-        const ctx = document.getElementById(elId)?.getContext('2d');
-        if(!ctx) return null;
-        return new Chart(ctx, {
-            type:'doughnut',
-            data:{labels:['Used','Free'], datasets:[{data:[used, free], backgroundColor:['rgba(255,99,132,0.8)','rgba(75,192,192,0.8)'], borderWidth:1}]},
-            options:{responsive:true, plugins:{legend:{position:'bottom'}}}
-        });
-    }
-
     // spider/radar chart (explicit dark grid colors)
     function makeSpiderChart(elId, data, isDark){
         const ctx = document.getElementById(elId)?.getContext('2d');
         if(!ctx) return null;
         return new Chart(ctx, {
             type:'radar',
-            data:{labels:["CPU","RAM","Disk","Net Up","Net Down"], datasets:[{label:"System Metrics", data:data, backgroundColor:"rgba(54,162,235,0.2)", borderColor:"rgba(54,162,235,1)", borderWidth:2}]},
+            // NOTE: Added MySQL Buffer to spider chart
+            data:{labels:["Host Load","PHP Memory","Disk","Net Up","Net Down", "MySQL Buffer"], datasets:[{label:"System Metrics", data:data, backgroundColor:"rgba(54,162,235,0.2)", borderColor:"rgba(54,162,235,1)", borderWidth:2}]},
             options:{
                 responsive:true,
                 scales:{
@@ -276,28 +266,34 @@ class Server_Monitor_Dashboard {
     // initial dark mode class
     if(isDark) document.body.classList.add('smd-dark');
 
+    // NOTE: Added mysqlBuffer chart
     let charts = {
-        cpu: makeChart('smdCpuChart','rgba(0,123,255,1)',100,currentType,isDark),
-        ram: makeChart('smdRamChart','rgba(40,200,120,1)',100,currentType,isDark),
+        cpu: makeChart('smdCpuChart','rgba(0,123,255,1)',100,currentType,isDark), // Host Load
+        ram: makeChart('smdRamChart','rgba(40,200,120,1)',100,currentType,isDark), // RAM chart now used for PHP memory %
         disk: makeChart('smdDiskChart','rgba(255,140,0,1)',100,currentType,isDark),
         netUp: makeChart('smdNetUpChart','rgba(0,150,255,1)',100,currentType,isDark),
         netDown: makeChart('smdNetDownChart','rgba(200,0,150,1)',200,currentType,isDark),
-        diskPie: makePieChart('smdDiskPieChart', 0, 100),
-        spider: makeSpiderChart('smdSpiderChart', [0,0,0,0,0], isDark)
+        dbSize: makeChart('smdDbSizeChart','rgba(150,50,255,1)', 100, currentType, isDark), // DB Size Chart (MB)
+        mysqlBuffer: makeChart('smdMySqlBufferChart','rgba(255,0,150,1)', 100, currentType, isDark), // NEW MySQL Buffer Chart (MB)
+        spider: makeSpiderChart('smdSpiderChart', [0,0,0,0,0,0], isDark)
     };
 
     function destroyChart(ch){ try{ ch?.destroy(); }catch(e){} }
 
     function rebuildCharts(newType){
         currentType = newType === 'bar' ? 'bar' : 'line';
-        ['cpu','ram','disk','netUp','netDown'].forEach(k => destroyChart(charts[k]));
-        charts.cpu    = makeChart('smdCpuChart','rgba(0,123,255,1)',100,currentType,isDark);
+        // NOTE: Added mysqlBuffer to rebuild list
+        ['cpu','ram','disk','netUp','netDown', 'dbSize', 'mysqlBuffer'].forEach(k => destroyChart(charts[k]));
+        charts.cpu    = makeChart('smdCpuChart','rgba(0,123,255,1)',100,currentType,isDark); // Host Load
         charts.ram    = makeChart('smdRamChart','rgba(40,200,120,1)',100,currentType,isDark);
         charts.disk   = makeChart('smdDiskChart','rgba(255,140,0,1)',100,currentType,isDark);
         charts.netUp  = makeChart('smdNetUpChart','rgba(0,150,255,1)',100,currentType,isDark);
         charts.netDown= makeChart('smdNetDownChart','rgba(200,0,150,1)',200,currentType,isDark);
+        charts.dbSize = makeChart('smdDbSizeChart','rgba(150,50,255,1)',100,currentType,isDark);
+        charts.mysqlBuffer = makeChart('smdMySqlBufferChart','rgba(255,0,150,1)',100,currentType,isDark); // MySQL Buffer
         // preserve data
-        ['cpu','ram','disk','netUp','netDown'].forEach(k=>{
+        // NOTE: Added mysqlBuffer to preserve list
+        ['cpu','ram','disk','netUp','netDown', 'dbSize', 'mysqlBuffer'].forEach(k=>{
             charts[k].data.datasets[0].data = dataStore[k].slice(-60);
             charts[k].update();
         });
@@ -305,7 +301,8 @@ class Server_Monitor_Dashboard {
 
     function updateChartTheme(){
         // update non-radar chart grid colors
-        ['cpu','ram','disk','netUp','netDown'].forEach(k=>{
+        // NOTE: Added mysqlBuffer to theme update list
+        ['cpu','ram','disk','netUp','netDown', 'dbSize', 'mysqlBuffer'].forEach(k=>{
             const ch = charts[k];
             if(!ch) return;
             ch.options.scales = { x: gridColors(isDark).x, y: { ...gridColors(isDark).y, max: ch.options.scales?.y?.max ?? 100 } };
@@ -313,12 +310,13 @@ class Server_Monitor_Dashboard {
         });
         // rebuild spider for grid colors
         destroyChart(charts.spider);
-        charts.spider = makeSpiderChart('smdSpiderChart', charts.spider?.data?.datasets?.[0]?.data || [0,0,0,0,0], isDark);
+        charts.spider = makeSpiderChart('smdSpiderChart', charts.spider?.data?.datasets?.[0]?.data || [0,0,0,0,0,0], isDark);
     }
 
     // datastore
     function push(arr, val, maxLen=60){ arr.push(val); if(arr.length>maxLen) arr.shift(); return arr; }
-    let dataStore = {cpu:[], ram:[], disk:[], netUp:[], netDown:[]};
+    // NOTE: Added mysqlBuffer to dataStore
+    let dataStore = {cpu:[], ram:[], disk:[], netUp:[], netDown:[], dbSize:[], mysqlBuffer:[]};
 
     function applyAlert(elId, value, threshold){
         const el = document.getElementById(elId);
@@ -348,37 +346,61 @@ class Server_Monitor_Dashboard {
         })
         .then(d=>{
             // labels
-            document.getElementById('smdCpuLabel').textContent = d.cpu + '%';
-            document.getElementById('smdRamLabel').textContent = d.ram_percent + '%';
+            document.getElementById('smdCpuLabel').textContent = d.cpu + '%'; // Host Load
+            document.getElementById('smdRamLabel').textContent = d.ram_used_mb + ' / ' + d.ram_total_mb + ' MB'; 
             document.getElementById('smdDiskLabel').textContent = d.disk_percent + '%';
             document.getElementById('smdNetUpLabel').textContent = d.net_up + ' Mbps';
             document.getElementById('smdNetDownLabel').textContent = d.net_down + ' Mbps';
             document.getElementById('smdUptime').textContent = d.uptime || '-';
             document.getElementById('smdLoadAvg').textContent = d.load_avg ? d.load_avg.join(', ') : '-';
-            document.getElementById('smdDbSize').textContent = d.db_size || '-';
-            document.getElementById('smdDiskPieLabel').textContent = d.disk_percent + '%';
+            document.getElementById('smdDbSize').textContent = d.db_size_formatted || '-';
+            document.getElementById('smdDbSizeChartLabel').textContent = d.db_size_formatted || '-';
+            // NEW: MySQL Buffer Label
+            document.getElementById('smdMySqlBufferChartLabel').textContent = d.mysql_buffer_formatted || '-';
+
 
             // alerts
-            applyAlert('smdCpuAlert', d.cpu, alerts.cpu);
-            applyAlert('smdRamAlert', d.ram_percent, alerts.ram);
+            applyAlert('smdCpuAlert', d.cpu, alerts.cpu); // Host Load alert
+            applyAlert('smdRamAlert', d.ram_percent, alerts.ram); // still use percentage for alerts
             applyAlert('smdDiskAlert', d.disk_percent, alerts.disk);
 
             // charts data
-            pushAndUpdate('cpu', d.cpu);
-            pushAndUpdate('ram', d.ram_percent);
+            pushAndUpdate('cpu', d.cpu); // Host Load
+            pushAndUpdate('ram', d.ram_percent); // still chart percentage of PHP limit
             pushAndUpdate('disk', d.disk_percent);
             pushAndUpdate('netUp', d.net_up);
             pushAndUpdate('netDown', d.net_down);
-
-            // pie
-            if(charts.diskPie){
-                charts.diskPie.data.datasets[0].data = [d.disk_percent, Math.max(0, 100 - d.disk_percent)];
-                charts.diskPie.update();
+            pushAndUpdate('dbSize', d.db_size_mb);
+            // NEW: Push MySQL Buffer in MB
+            pushAndUpdate('mysqlBuffer', d.mysql_buffer_mb);
+            
+            // DYNAMIC Y-AXIS ADJUSTMENTS
+            
+            // Adjust DB Size chart max Y-axis
+            const dbChart = charts.dbSize;
+            if(dbChart && d.db_size_mb > 0) {
+                const currentMax = Math.max(...dataStore.dbSize);
+                const newMax = Math.ceil(currentMax * 1.1);
+                if (dbChart.options.scales.y.max < newMax) {
+                    dbChart.options.scales.y.max = Math.max(newMax, 100); 
+                    dbChart.update('none'); 
+                }
             }
 
-            // spider
+            // Adjust MySQL Buffer chart max Y-axis
+            const mysqlBufferChart = charts.mysqlBuffer;
+            if(mysqlBufferChart && d.mysql_buffer_mb > 0) {
+                // Max is set to the allocated size (d.mysql_buffer_mb) + 10MB margin
+                const newMax = Math.ceil(d.mysql_buffer_mb + 10);
+                if (mysqlBufferChart.options.scales.y.max !== newMax) {
+                    mysqlBufferChart.options.scales.y.max = Math.max(newMax, 50); // Minimum of 50MB
+                    mysqlBufferChart.update('none'); 
+                }
+            }
+            
+            // spider (RAM uses PHP memory percent, CPU uses Host Load, new MySQL buffer)
             if(charts.spider){
-                charts.spider.data.datasets[0].data = [d.cpu, d.ram_percent, d.disk_percent, d.net_up, d.net_down];
+                charts.spider.data.datasets[0].data = [d.cpu, d.ram_percent, d.disk_percent, d.net_up, d.net_down, d.mysql_buffer_percent || 0];
                 charts.spider.update();
             }
         })
@@ -427,7 +449,7 @@ JS;
 
         $use_real = !empty($opts['use_real_metrics']);
 
-        // CPU via loadavg -> percent by cores
+        // Host Load / CPU (Load Average)
         $cpu_percent = 0;
         $load = null;
         if (function_exists('sys_getloadavg')) {
@@ -439,8 +461,9 @@ JS;
             $cpu_percent = rand(5, 30);
         }
 
-        // RAM via /proc/meminfo
+        // PHP Memory (RAM)
         $ram_percent = 0; $ram_total_mb = 0; $ram_used_mb = 0;
+        // Real RAM check (Linux only, disabled in XAMPP/LocalWP)
         if ($use_real && file_exists('/proc/meminfo')) {
             $mem = @file_get_contents('/proc/meminfo');
             if ($mem !== false) {
@@ -456,7 +479,7 @@ JS;
                 }
             }
         }
-        // fallback sim
+        // PHP Memory fallback (always used in XAMPP)
         if ($ram_percent === 0) {
             $php_used_mb = round(memory_get_usage(true) / (1024*1024), 1);
             $php_limit = $this->php_memory_limit_mb();
@@ -465,7 +488,7 @@ JS;
             $ram_used_mb = $php_used_mb;
         }
 
-        // Disk usage (WP root)
+        // Disk usage (WP root - reliable)
         $path = ABSPATH;
         $disk_total = @disk_total_space($path);
         $disk_free = @disk_free_space($path);
@@ -482,12 +505,21 @@ JS;
         $uptime = $this->get_uptime();
         $load_avg = $load ?? (function_exists('sys_getloadavg') ? sys_getloadavg() : null);
 
-        // Network (sim)
+        // Network (simulated)
         if ($use_real) { $net_up = rand(1,40); $net_down = rand(1,120); }
         else { $net_up = rand(0,40); $net_down = rand(0,120); }
 
-        // DB size
-        $db_size = $this->get_db_size();
+        // DB size (Total size of all WP tables - reliable)
+        $db_size_mb = $this->get_db_size();
+        $db_size_formatted = $db_size_mb > 0 ? $db_size_mb . ' MB' : '-';
+
+        // MySQL InnoDB Buffer Size (NEW - Requires SHOW GLOBAL VARIABLES privilege)
+        $mysql_buffer_data = $this->get_mysql_innodb_buffer_size();
+        $mysql_buffer_mb = $mysql_buffer_data['used_mb'];
+        $mysql_buffer_total_mb = $mysql_buffer_data['total_mb'];
+        $mysql_buffer_percent = $mysql_buffer_data['percent'];
+        $mysql_buffer_formatted = $mysql_buffer_data['formatted'];
+
 
         // WP counts
         $posts = wp_count_posts()->publish ?? 0;
@@ -509,7 +541,12 @@ JS;
             'uptime' => $uptime,
             'net_up' => $net_up,
             'net_down' => $net_down,
-            'db_size' => $db_size,
+            'db_size_mb' => $db_size_mb,           
+            'db_size_formatted' => $db_size_formatted, 
+            'mysql_buffer_mb' => $mysql_buffer_mb, // NEW
+            'mysql_buffer_total_mb' => $mysql_buffer_total_mb, // NEW
+            'mysql_buffer_percent' => $mysql_buffer_percent, // NEW
+            'mysql_buffer_formatted' => $mysql_buffer_formatted, // NEW
             'posts' => $posts,
             'pages' => $pages,
             'users' => $users,
@@ -580,12 +617,65 @@ JS;
         global $wpdb;
         $prefix = $wpdb->prefix;
         $tables = $wpdb->get_results("SHOW TABLE STATUS LIKE '{$prefix}%'", ARRAY_A);
-        if (!$tables) return '-';
+        if (!$tables) return 0.0;
         $size = 0;
         foreach ($tables as $t) {
             $size += ($t['Data_length'] + $t['Index_length']);
         }
-        return round($size / (1024*1024), 2) . ' MB';
+        return round($size / (1024*1024), 2);
+    }
+    
+    // NEW FUNCTION to get MySQL InnoDB Buffer Pool size and usage
+    private function get_mysql_innodb_buffer_size() {
+        global $wpdb;
+        $default_output = [
+            'used_mb' => 0.0,
+            'total_mb' => 0.0,
+            'percent' => 0.0,
+            'formatted' => 'N/A'
+        ];
+
+        // 1. Get the allocated size (total)
+        // Requires: SHOW GLOBAL VARIABLES
+        $total_size_query = $wpdb->get_row("SHOW GLOBAL VARIABLES LIKE 'innodb_buffer_pool_size'", ARRAY_A);
+        if ($wpdb->last_error) {
+            // Permission error likely occurred (SHOW GLOBAL VARIABLES requires SUPER/RELOAD privilege)
+            $default_output['formatted'] = 'Permission Denied';
+            return $default_output;
+        }
+        
+        $total_bytes = (float)($total_size_query['Value'] ?? 0);
+        $total_mb = $total_bytes > 0 ? round($total_bytes / (1024*1024), 2) : 0.0;
+
+        // 2. Get the current usage (used)
+        // Requires: SHOW GLOBAL STATUS
+        $used_pages_row = $wpdb->get_row("SHOW GLOBAL STATUS LIKE 'Innodb_buffer_pool_pages_data'", ARRAY_A);
+        $total_pages_row = $wpdb->get_row("SHOW GLOBAL STATUS LIKE 'Innodb_buffer_pool_pages_total'", ARRAY_A);
+        $page_size_row = $wpdb->get_row("SHOW GLOBAL VARIABLES LIKE 'innodb_page_size'", ARRAY_A);
+
+        $used_pages = (int)($used_pages_row['Value'] ?? 0);
+        $total_pages = (int)($total_pages_row['Value'] ?? 0);
+        $page_size = (int)($page_size_row['Value'] ?? 0);
+
+        if ($total_pages === 0 || $page_size === 0) {
+            // Cannot calculate usage without page size/count, but we may have total_mb
+            $default_output['total_mb'] = $total_mb;
+            $default_output['formatted'] = $total_mb > 0 ? $total_mb . ' MB (Allocated)' : 'N/A';
+            return $default_output;
+        }
+        
+        $used_bytes = $used_pages * $page_size;
+        $used_mb = round($used_bytes / (1024*1024), 2);
+        
+        // Final calculation and formatting
+        $percent = $total_pages > 0 ? round(($used_pages / $total_pages) * 100, 1) : 0.0;
+        
+        return [
+            'used_mb' => $used_mb,
+            'total_mb' => $total_mb,
+            'percent' => $percent,
+            'formatted' => $used_mb . ' / ' . $total_mb . ' MB (' . $percent . '%)'
+        ];
     }
 
     private function get_top_processes($limit = 5) {
@@ -612,7 +702,7 @@ JS;
         $opts = wp_parse_args(get_option($this->option_name, []), $this->defaults);
         ?>
         <div class="smd-wrap">
-            <h1>Server Monitor Dashboard</h1>
+            <h1>Server Monitor Dashboard (Application Focus)</h1>
 
             <div class="smd-info-grid">
                 <div class="smd-info-card"><strong>PHP Version:</strong> <?php echo phpversion(); ?></div>
@@ -620,19 +710,20 @@ JS;
                 <div class="smd-info-card"><strong>WordPress:</strong> <?php echo esc_html(get_bloginfo('version')); ?></div>
                 <div class="smd-info-card"><strong>Memory Limit:</strong> <?php echo esc_html(ini_get('memory_limit')); ?></div>
                 <div class="smd-info-card"><strong>Max Upload:</strong> <?php echo esc_html(ini_get('upload_max_filesize')); ?></div>
-                <div class="smd-info-card"><strong>DB Size:</strong> <span id="smdDbSize"><?php echo esc_html($stats['db_size']); ?></span></div>
+                <div class="smd-info-card"><strong>DB Size:</strong> <span id="smdDbSize"><?php echo esc_html($stats['db_size_formatted']); ?></span></div>
+                <div class="smd-info-card"><strong>MySQL Buffer:</strong> <span id="smdMySqlBufferInfo"><?php echo esc_html($stats['mysql_buffer_formatted']); ?></span></div>
             </div>
 
             <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
-                <div class="smd-alert <?php echo ($stats['cpu'] >= $opts['alert_cpu'] ? 'warn' : 'ok'); ?>" id="smdCpuAlert">CPU</div>
-                <div class="smd-alert <?php echo ($stats['ram_percent'] >= $opts['alert_ram'] ? 'warn' : 'ok'); ?>" id="smdRamAlert">RAM</div>
+                <div class="smd-alert <?php echo ($stats['cpu'] >= $opts['alert_cpu'] ? 'warn' : 'ok'); ?>" id="smdCpuAlert">Host Load</div>
+                <div class="smd-alert <?php echo ($stats['ram_percent'] >= $opts['alert_ram'] ? 'warn' : 'ok'); ?>" id="smdRamAlert">PHP Memory</div>
                 <div class="smd-alert <?php echo ($stats['disk_percent'] >= $opts['alert_disk'] ? 'warn' : 'ok'); ?>" id="smdDiskAlert">Disk</div>
                 <div style="margin-left:auto">Uptime: <strong id="smdUptime"><?php echo esc_html($stats['uptime']); ?></strong> &nbsp; Load: <strong id="smdLoadAvg"><?php echo is_array($stats['load_avg']) ? implode(', ', $stats['load_avg']) : '-'; ?></strong></div>
             </div>
 
            <div style="display:flex;justify-content:center;margin-bottom:18px">
                 <div class="smd-card" style="width:100%;max-width:600px;position:relative;">
-                    <h4 style="text-align:center;margin-bottom:10px;">Overall Metrics</h4>
+                    <h4 style="text-align:center;margin-bottom:10px;">Overall Metrics (Simulated/Application Focus)</h4>
                         <div style="display:flex;justify-content:center;align-items:center;width:100%;">
                             <canvas id="smdSpiderChart" class="smd-chart" style="max-width:100%;"></canvas>
                         </div>
@@ -640,12 +731,18 @@ JS;
             </div>
 
             <div class="smd-grid">
-                <div class="smd-card"><h4>CPU <span class="smd-label" id="smdCpuLabel"><?php echo esc_html($stats['cpu']); ?>%</span></h4><canvas id="smdCpuChart" class="smd-chart"></canvas></div>
-                <div class="smd-card"><h4>RAM <span class="smd-label" id="smdRamLabel"><?php echo esc_html($stats['ram_percent']); ?>%</span></h4><canvas id="smdRamChart" class="smd-chart"></canvas></div>
+                <div class="smd-card"><h4>Host Load <span class="smd-label" id="smdCpuLabel"><?php echo esc_html($stats['cpu']); ?>%</span></h4><canvas id="smdCpuChart" class="smd-chart"></canvas></div>
+                <div class="smd-card"><h4>PHP Memory <span class="smd-label" id="smdRamLabel"><?php echo esc_html($stats['ram_used_mb']); ?> / <?php echo esc_html($stats['ram_total_mb']); ?> MB</span></h4><canvas id="smdRamChart" class="smd-chart"></canvas></div>
+                
                 <div class="smd-card"><h4>Disk <span class="smd-label" id="smdDiskLabel"><?php echo esc_html($stats['disk_percent']); ?>%</span></h4><canvas id="smdDiskChart" class="smd-chart"></canvas></div>
+                
                 <div class="smd-card"><h4>Net Up <span class="smd-label" id="smdNetUpLabel"><?php echo esc_html($stats['net_up']); ?> Mbps</span></h4><canvas id="smdNetUpChart" class="smd-chart"></canvas></div>
+                
                 <div class="smd-card"><h4>Net Down <span class="smd-label" id="smdNetDownLabel"><?php echo esc_html($stats['net_down']); ?> Mbps</span></h4><canvas id="smdNetDownChart" class="smd-chart"></canvas></div>
-                <div class="smd-card"><h4>Disk Usage Pie <span class="smd-label" id="smdDiskPieLabel"><?php echo esc_html($stats['disk_percent']); ?>%</span></h4><canvas id="smdDiskPieChart" class="smd-chart"></canvas></div>
+                
+                <div class="smd-card"><h4>Database Size <span class="smd-label" id="smdDbSizeChartLabel"><?php echo esc_html($stats['db_size_formatted']); ?></span></h4><canvas id="smdDbSizeChart" class="smd-chart"></canvas></div>
+                
+                <div class="smd-card"><h4>MySQL Buffer <span class="smd-label" id="smdMySqlBufferChartLabel"><?php echo esc_html($stats['mysql_buffer_formatted']); ?></span></h4><canvas id="smdMySqlBufferChart" class="smd-chart"></canvas></div>
             </div>
 
             <h3 style="margin-top:18px">WordPress</h3>
@@ -706,3 +803,4 @@ JS;
 Server_Monitor_Dashboard::instance();
 
 } // endif class exists
+?>
