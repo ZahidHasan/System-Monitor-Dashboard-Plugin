@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Server Monitor Dashboard
  * Description: Live PHP Memory, Disk, Network, Database Size, and MySQL Buffer charts.
- * Version: 1.4.1
+ * Version: 2.0
  * Author: Zahid Hasan
  * Author URI: https://zahidhasan.github.io
  * License: MIT License
