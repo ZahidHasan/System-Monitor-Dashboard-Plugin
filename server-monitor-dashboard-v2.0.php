@@ -802,8 +802,6 @@ JS;
 
 Server_Monitor_Dashboard::instance();
 
-} // endif class exists
-<<<<<<<< HEAD:server-monior-dashboard-v1.4.1.php
-?>
-========
->>>>>>>> main:server-monitor-dashboard-v1.4.1.php
+}
+
+
