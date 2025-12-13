@@ -1,6 +1,10 @@
 # WordPress Server Monitor Dashboard Plugin
-
+Your server’s health, visualized—right inside WordPress.
 Real‑time WordPress plugin delivering CPU, RAM, Disk, Network, Process, and MySQL Buffer insights in one unified cockpit.
+
+[![Download Plugin](https://img.shields.io/badge/Download-Plugin-blue?style=for-the-badge)](https://github.com/ZahidHasan/System-Monitor-Dashboard-Plugin/archive/refs/heads/main.zip)
+
+
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![WordPress Tested](https://img.shields.io/badge/WordPress-6.4.2-blue)
@@ -69,7 +73,7 @@ Built with **PHP** and **PowerShell automation**, this plugin helps developers a
 
 ---
 
-## 🛣 Roadmap
+## 🛣 [Roadmap](ROADMAP.md)
 **v2.1** → Uptime tracking, thread/process details, custom alerts  
 **v2.2** → Log viewer, service monitoring, historical trends  
 **v3.0** → Multi-server metrics, security insights, predictive capacity planning  
@@ -106,7 +110,7 @@ Built with **PHP** and **PowerShell automation**, this plugin helps developers a
 
 ---
 
-## ❓ FAQ
+## ❓ [FAQ](/FAQ.md)
 - **CPU load vs Task Manager?** → Plugin shows averaged usage, Task Manager shows per-core peaks.  
 - **RAM mismatch?** → Task Manager includes cached/reserved memory; plugin shows active allocation.  
 - **MySQL Buffer Pool?** → Displays InnoDB buffer usage vs allocation.  
@@ -116,6 +120,9 @@ Built with **PHP** and **PowerShell automation**, this plugin helps developers a
 - **Performance impact?** → Minimal; adjust polling interval for high-traffic sites.  
 - **Network chart shows traffic with Wi-Fi off?** → Reads all interfaces (Ethernet, VPN, Docker, etc.), not just Wi-Fi.  
 
+---
+
+## 📖 [Manual](MANUAL.md)
 ---
 
 ## 🤝 Contributing
