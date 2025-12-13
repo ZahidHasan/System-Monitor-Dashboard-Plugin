@@ -87,7 +87,7 @@ This combination of real‑time server metrics + WordPress integration makes Ser
 
 ---
 
-## 🛣 [Roadmap](/README.md)
+## 🛣 [Roadmap](/ROADMAP.md)
 **v2.1** → Uptime tracking, thread/process details, custom alerts  
 **v2.2** → Log viewer, service monitoring, historical trends  
 **v3.0** → Multi-server metrics, security insights, predictive capacity planning  
