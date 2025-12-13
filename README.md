@@ -1,4 +1,3 @@
-![WP Server Monitor Dashboard](/Resources/Logo/wp-server-monitor-dashboard.png)
 # WP Server Monitor Dashboard
 Your server’s health, visualized—right inside WordPress.
 Real‑time WordPress plugin delivering CPU, RAM, Disk, Network, Process, and MySQL Buffer insights in one unified cockpit.
