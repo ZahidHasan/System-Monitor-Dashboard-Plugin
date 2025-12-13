@@ -1,4 +1,4 @@
-## Server Monitor System v2.0 
+## WP Server Monitor Dashboard v2.0 
 
 ### 📊 Chart Descriptions
 - **CPU Usage Chart**

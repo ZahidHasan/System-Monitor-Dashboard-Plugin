@@ -1,3 +1,5 @@
+# WP Server Monitor Dashboard
+
 ## 🛣 Roadmap
 
 **Planned for v2.1**

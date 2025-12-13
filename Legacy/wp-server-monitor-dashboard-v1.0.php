@@ -1,6 +1,7 @@
 <?php
 /**
- * Plugin Name: System Monitor Dashboard Plugin
+ * Plugin Name: WP Server Monitor Dashboard
+ * Text Domain: server-monitor-dashboard
  * Description: Displays graphical real-time CPU, RAM, and Disk usage in the WordPress Admin Dashboard.
  * Version: 1.0
  * Author: Zahid Hasan

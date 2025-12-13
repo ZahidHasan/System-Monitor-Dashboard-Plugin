@@ -1,4 +1,4 @@
-## WordPress Server Monitor Dashboard Plugin
+## WP Server Monitor Dashboard
 Keep your server health visible inside WordPress.
 
 ### 🚀 Key Highlights

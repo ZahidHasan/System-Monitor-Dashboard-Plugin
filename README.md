@@ -1,8 +1,8 @@
-# WordPress Server Monitor Dashboard Plugin
+# WP Server Monitor Dashboard
 Your server’s health, visualized—right inside WordPress.
 Real‑time WordPress plugin delivering CPU, RAM, Disk, Network, Process, and MySQL Buffer insights in one unified cockpit.
 
-[![Download Plugin](https://img.shields.io/badge/Download-Plugin-blue?style=for-the-badge)](https://github.com/ZahidHasan/System-Monitor-Dashboard-Plugin/archive/refs/heads/main.zip)
+[![Download Plugin](https://img.shields.io/badge/Download-Plugin-blue?style=for-the-badge)](https://github.com/ZahidHasan/wp-server-monitor-dashboard/archive/refs/heads/main.zip)
 
 
 
@@ -11,9 +11,9 @@ Real‑time WordPress plugin delivering CPU, RAM, Disk, Network, Process, and My
 ![PHP Version](https://img.shields.io/badge/PHP-7.4%2B-green)
 ![PowerShell Automation](https://img.shields.io/badge/PowerShell-Automated-lightblue)
 ![Plugin Status](https://img.shields.io/badge/Status-Active-brightgreen)
-![Issues](https://img.shields.io/github/issues/zahidhasan/System-Monitor-Dashboard-Plugin)
-![Pull Requests](https://img.shields.io/github/issues-pr/zahidhasan/System-Monitor-Dashboard-Plugin)
-![Stars](https://img.shields.io/github/stars/zahidhasan/System-Monitor-Dashboard-Plugin?style=social)
+![Issues](https://img.shields.io/github/issues/zahidhasan/wp-server-monitor-dashboard)
+![Pull Requests](https://img.shields.io/github/issues-pr/zahidhasan/wp-server-monitor-dashboard)
+![Stars](https://img.shields.io/github/stars/zahidhasan/wp-server-monitor-dashboard?style=social)
 
 ---
 

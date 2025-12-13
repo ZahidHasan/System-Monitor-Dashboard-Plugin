@@ -1,3 +1,5 @@
+## WP Server Monitor Dashboard v2.0 
+
 ## ❓ Frequently Asked Questions (FAQ)
 
 Q: **Why does the CPU load look lower than Task Manager?**
