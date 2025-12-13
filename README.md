@@ -1,3 +1,4 @@
+![WP Server Monitor Dashboard]()
 # WP Server Monitor Dashboard
 Your server’s health, visualized—right inside WordPress.
 Real‑time WordPress plugin delivering CPU, RAM, Disk, Network, Process, and MySQL Buffer insights in one unified cockpit.
@@ -51,6 +52,18 @@ Built with **PHP** and **PowerShell automation**, this plugin helps developers a
 - 🔍 Top processes view  
 
 ---
+
+## Why Server Monitor Dashboard is Different
+Most WordPress monitoring plugins focus only on uptime or basic performance checks. Server Monitor Dashboard goes further by giving you a complete, real‑time view of your server’s health directly inside WordPress.
+- 🔍 **Deeper Insights** — Track CPU, RAM, Disk, and Network usage with intuitive charts and gauges.
+- ⚡ **Lightweight & Fast** — Built to run smoothly without bloating your WordPress installation.
+- 🎯 **Application‑Focused Metrics** — See PHP, MySQL, and WordPress resource usage alongside server stats.
+- 🖥️ **Visual Dashboard** — Radar charts, line graphs, and pie charts make complex data easy to understand.
+- 🔔 **Custom Alerts** — Get notified when thresholds are crossed, so you can act before issues escalate.
+- 🌐 **Self‑Contained** — No external services or subscriptions required — your data stays in your WordPress site.
+This combination of real‑time server metrics + WordPress integration makes Server Monitor Dashboard unique compared to plugins that only check uptime or rely on third‑party services.
+---
+
 
 ## 📊 Chart Guide
 - **CPU Usage** → Detect spikes and bottlenecks  
