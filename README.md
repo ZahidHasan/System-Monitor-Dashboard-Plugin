@@ -1,4 +1,4 @@
-![WP Server Monitor Dashboard]()
+![WP Server Monitor Dashboard](/Resources//logo/wp-server-monitor-dashboard-logo.png)
 # WP Server Monitor Dashboard
 📊 Real‑time server health, alerts, and live metrics — right inside WordPress.
 
