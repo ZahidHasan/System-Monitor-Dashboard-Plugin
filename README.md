@@ -1,4 +1,4 @@
-![WP Server Monitor Dashboard](/Resources/logo/wp-server-monitor-dashboard-logo.png)
+![WP Server Monitor Dashboard](/assets/logo/wp-server-monitor-dashboard-logo.png)
 # WP Server Monitor Dashboard
 📊 Real‑time server health, alerts, and live metrics — right inside WordPress.
 
@@ -33,13 +33,13 @@ Built with **PHP** and **PowerShell automation**, this plugin helps developers a
 ## 📸 Screenshots
 
 ### Dark Theme
-![Server Resource Dashboard](/Resources/ScreenShots/server-dark-v1.4.1.png)
+![Server Resource Dashboard](/assets/screen-shots/server-dark-v1.4.1.png)
 
 ### Light Theme
-![Server Resource Dashboard](/Resources/ScreenShots/server-white-v1.4.1.png)
+![Server Resource Dashboard](/assets/screen-shots/server-white-v1.4.1.png)
 
 ### Settings
-![Server Resource Dashboard](/Resources/ScreenShots/server-setting-v1.4.1.png)
+![Server Resource Dashboard](/assets/screen-shots/server-setting-v1.4.1.png)
 
 ---
 
@@ -87,7 +87,7 @@ This combination of real‑time server metrics + WordPress integration makes Ser
 
 ---
 
-## 🛣 [Roadmap](ROADMAP.md)
+## 🛣 [Roadmap](/README.md)
 **v2.1** → Uptime tracking, thread/process details, custom alerts  
 **v2.2** → Log viewer, service monitoring, historical trends  
 **v3.0** → Multi-server metrics, security insights, predictive capacity planning  
@@ -136,12 +136,12 @@ This combination of real‑time server metrics + WordPress integration makes Ser
 
 ---
 
-## 📖 [Manual](MANUAL.md)
+## 📖 [Manual](/MANUAL.md)
 ---
 
 ## 🤝 Contributing
-- Report bugs → [GitHub Issues](https://github.com/zahidhasan/system-monitor-dashboard/issues)  
-- Request features → [GitHub Issues](https://github.com/zahidhasan/system-monitor-dashboard/issues)  
+- Report bugs → [GitHub Issues](https://github.com/zahidhasan/wp-server-monitor-dashboard/issues)  
+- Request features → [GitHub Issues](https://github.com/zahidhasan/wp-server-monitor-dashboard/issues)  
 - Fork → Branch → Commit → Pull Request  
 
 Community Guidelines:  
@@ -174,7 +174,7 @@ Every cup helps me keep building new features, polishing docs, and pushing updat
 ---
 
 ## 📜 License
-MIT License — see [LICENSE](LICENSE)
+MIT License — see [LICENSE](/LICENSE)
 
 ---
 
