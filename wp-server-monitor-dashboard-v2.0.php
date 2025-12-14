@@ -1,6 +1,7 @@
 <?php
 /**
- * Plugin Name: Server Monitor Dashboard
+ * Plugin Name: WP Server Monitor Dashboard
+ * Text Domain: wp-server-monitor-dashboard
  * Description: Live PHP Memory, Disk, Network, Database Size, and MySQL Buffer charts.
  * Version: 2.0
  * Author: Zahid Hasan
